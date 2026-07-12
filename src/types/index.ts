@@ -1,3 +1,26 @@
+/* ─── Re-export new curriculum types (non-conflicting) ─ */
+export type {
+  ContentStandardCategory,
+  Textbook,
+  TextbookUnit,
+  UnitTopic,
+  ContentStandardRef,
+  LearningStandardRef,
+  ContentStandard,
+  LearningStandard,
+  SoWWeekRange,
+  SoWEntry,
+  PeriodDefinition,
+  SessionPart,
+  TimetableSlot as CurriculumTimetableSlot,
+  YearCurriculum,
+  MoECurriculum,
+  UnitWithStandards,
+  StandardLookup,
+} from "./curriculum"
+
+/* ─── Legacy types (kept for backward compatibility) ── */
+
 export type YearGroup = "Year 1" | "Year 2" | "Year 3" | "Year 4" | "Year 5" | "Year 6"
 
 export type Subject = "English"
