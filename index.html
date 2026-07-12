@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MALP — Malaysian Lesson Planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📘</text></svg>">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    .sidebar-transition { transition: transform 0.25s ease-in-out; }
+    @media (max-width: 768px) { .sidebar-open { transform: translateX(0); } }
+    .fade-in { animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<div x-data="app()" class="flex h-screen bg-slate-50 text-slate-800">
+
+  <!-- ── Mobile overlay ── -->
+  <template x-teleport="body">
+    <div
+      x-show="sidebarOpen"
+      @click="sidebarOpen = false"
+      class="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm md:hidden"
+    ></div>
+  </template>
+
+  <!-- ── Sidebar ── -->
+  <aside
+    class="sidebar-transition fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-slate-900 text-slate-100 md:static"
+    x-bind:class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+  >
+    <!-- Brand -->
+    <div class="flex h-16 items-center gap-2.5 border-b border-slate-700/50 px-5">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-sm">📘</span>
+      <div>
+        <p class="text-sm font-semibold leading-tight">MALP</p>
+        <p class="text-[10px] leading-tight text-slate-400">Malaysian Lesson Planner</p>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 space-y-1 overflow-y-auto p-3">
+      <template x-for="tab in tabs" :key="tab.id">
+        <button
+          @click="switchTab(tab.id)"
+          class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+          x-bind:class="activeTab === tab.id
+            ? 'bg-indigo-500/20 text-indigo-300'
+            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'"
+        >
+          <span x-text="tab.icon"></span>
+          <span x-text="tab.label"></span>
+        </button>
+      </template>
+    </nav>
+
+    <!-- Footer -->
+    <div class="border-t border-slate-700/50 p-4 text-center text-[10px] text-slate-500">
+      v1.0 &middot; All data stored locally
+    </div>
+  </aside>
+
+  <!-- ── Main area ── -->
+  <div class="flex min-w-0 flex-1 flex-col">
+
+    <!-- Top bar (mobile) -->
+    <header class="flex h-16 items-center gap-3 border-b bg-white px-4 md:px-6 lg:px-8">
+      <button @click="sidebarOpen = !sidebarOpen" class="-ml-1 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 md:hidden">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+      </button>
+      <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
+        <span x-text="tabs.find(t => t.id === activeTab)?.icon"></span>
+        <span x-text="tabs.find(t => t.id === activeTab)?.label"></span>
+      </div>
+      <div class="ml-auto flex items-center gap-2 text-xs text-slate-400">
+        <span class="hidden sm:inline" x-text="`${lessonPlans.length} plan${lessonPlans.length !== 1 ? 's' : ''}`"></span>
+        <span class="hidden sm:inline">&middot;</span>
+        <span x-text="`${timetable.length} slot${timetable.length !== 1 ? 's' : ''}`"></span>
+      </div>
+    </header>
+
+    <!-- ── Page content ── -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+
+      <!-- ══════════════ TAB: MY TIMETABLE ══════════════ -->
+      <section x-show="activeTab === 'timetable'" x-cloak class="fade-in mx-auto max-w-5xl">
+
+        <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-slate-900">My Timetable</h1>
+            <p class="mt-1 text-sm text-slate-500">Click a cell to add or edit a class slot.</p>
+          </div>
+          <button @click="exportTimetable()" class="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Export
+          </button>
+        </div>
+
+        <!-- week header -->
+        <div class="mb-4 flex items-center justify-between rounded-lg border bg-white px-4 py-3 shadow-sm">
+          <button @click="weekOffset--" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">&larr;</button>
+          <div class="text-center">
+            <p class="text-sm font-semibold text-slate-900" x-text="'MINGGU ' + weekNumber()"></p>
+            <p class="text-xs text-slate-500" x-text="weekDateRange()"></p>
+          </div>
+          <button @click="weekOffset++" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">&rarr;</button>
+        </div>
+
+        <!-- grid -->
+        <div class="overflow-x-auto rounded-lg border bg-white shadow-sm">
+          <table class="w-full min-w-[600px] text-sm">
+            <thead>
+              <tr class="border-b bg-slate-50">
+                <th class="w-16 px-3 py-2.5 text-left text-xs font-semibold uppercase text-slate-500">Per</th>
+                <template x-for="d in days" :key="d">
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase text-slate-500">
+                    <span class="hidden sm:inline" x-text="d"></span>
+                    <span class="sm:hidden" x-text="d.slice(0,3)"></span>
+                  </th>
+                </template>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="p in 8" :key="p">
+                <tr class="border-b last:border-0">
+                  <td class="px-3 py-1.5 text-xs font-medium text-slate-400">P<span x-text="p"></span></td>
+                  <template x-for="d in days" :key="d">
+                    <td
+                      @click="editSlot(d, p)"
+                      class="group relative min-h-[64px] cursor-pointer border-l px-1 py-1 align-top transition-colors hover:bg-indigo-50/50"
+                    >
+                      <template x-for="s in cellsFor(d, p)" :key="s.id">
+                        <div
+                          @click.stop="editSlot(d, p, s)"
+                          class="mb-0.5 cursor-pointer rounded-md border px-1.5 py-1 text-[11px] leading-tight transition-colors hover:shadow-sm"
+                          x-bind:class="yearBadge(s.yearGroup)"
+                        >
+                          <div class="flex items-center justify-between gap-1">
+                            <span class="font-semibold" x-text="s.yearGroup.replace('Year ','Y')"></span>
+                            <span x-show="s.part" class="rounded bg-white/40 px-1 text-[9px] font-medium">P<template x-text="s.part"></template></span>
+                          </div>
+                          <div class="text-[10px] opacity-70" x-text="s.startTime + '–' + s.endTime"></div>
+                        </div>
+                      </template>
+                      <div x-show="!cellsFor(d, p).length" class="flex h-full min-h-[44px] items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+                        <svg class="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                      </div>
+                    </td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- legend -->
+        <div class="mt-4 flex flex-wrap gap-3 text-[11px] text-slate-500">
+          <template x-for="y in yearGroups" :key="y">
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block h-2.5 w-2.5 rounded-sm border" x-bind:class="yearBadge(y).split(' ')[0]"></span>
+              <span x-text="y"></span>
+            </span>
+          </template>
+        </div>
+      </section>
+
+      <!-- ══════════════ TAB: GENERATE LESSON PLANS ══════════════ -->
+      <section x-show="activeTab === 'generate'" x-cloak class="fade-in mx-auto max-w-5xl">
+
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-slate-900">Generate Lesson Plans</h1>
+          <p class="mt-1 text-sm text-slate-500">Select a week, choose your unit, and generate plans from your timetable.</p>
+        </div>
+
+        <!-- Week selector -->
+        <div class="mb-4 flex items-center justify-between rounded-lg border bg-white px-4 py-3 shadow-sm">
+          <button @click="genWeekOffset--" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">&larr;</button>
+          <div class="text-center">
+            <p class="text-sm font-semibold text-slate-900" x-text="mingguLabel"></p>
+            <p class="text-xs text-slate-500" x-text="genDateRange"></p>
+          </div>
+          <button @click="genWeekOffset++" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">&rarr;</button>
+        </div>
+
+        <!-- Form -->
+        <div class="mb-8 rounded-xl border bg-white p-5 shadow-sm">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Year Group</label>
+              <select x-model="form.yearGroup" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <template x-for="y in yearGroups" :key="y">
+                  <option x-bind:value="y" x-text="y"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Unit</label>
+              <select x-model="form.unit" @change="onUnitChange()" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <option value="">-- Auto (from TT) --</option>
+                <template x-for="u in availableUnits" :key="u.unitNumber">
+                  <option x-bind:value="u.unitNumber" x-text="'Unit ' + u.unitNumber + ': ' + u.title"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Theme</label>
+              <select x-model="form.theme" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <template x-for="t in themes" :key="t">
+                  <option x-bind:value="t" x-text="t"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Topic</label>
+              <input x-model="form.topic" placeholder="e.g. My Family" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Skill Focus</label>
+              <select x-model="form.skillArea" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <template x-for="s in skillAreas" :key="s">
+                  <option x-bind:value="s" x-text="s"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button @click="generateWeekPlans()" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-indigo-700">
+              <span class="text-lg">\u26A1</span> Generate Lesson Plans
+            </button>
+            <span class="text-xs text-slate-400" x-text="'From ' + Object.keys(slotsByDay).length + ' day(s) \u00B7 ' + slotsForWeek.length + ' slot(s)'"></span>
+            <button @click="exportAllPlans()" class="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-slate-500 shadow-sm transition-colors hover:bg-slate-50">
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+              Export All
+            </button>
+          </div>
+        </div>
+
+        <!-- Plans list -->
+        <div x-show="!lessonPlans.length" class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-16 text-center text-slate-400">
+          <span class="text-3xl mb-3">📋</span>
+          <p class="text-sm font-medium">No lesson plans yet</p>
+          <p class="mt-1 text-xs">Select a week, choose a unit, then click Generate Lesson Plans.</p>
+        </div>
+
+        <!-- Clear all -->
+        <div x-show="lessonPlans.length" class="mb-3 flex items-center justify-between">
+          <p class="text-xs text-slate-400" x-text="lessonPlans.length + ' plan(s)'"></p>
+          <button @click="lessonPlans = []" class="rounded-lg px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50">Clear All</button>
+        </div>
+
+        <div x-show="lessonPlans.length" class="space-y-4">
+          <template x-for="plan in lessonPlans" :key="plan.id">
+            <div class="rounded-xl border bg-white shadow-sm transition-shadow hover:shadow">
+              <!-- header -->
+              <div
+                @click="plan._open = !plan._open"
+                class="flex cursor-pointer items-center justify-between border-b px-5 py-3"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <span class="shrink-0 text-slate-400" x-text="plan._open ? '\u25BE' : '\u25B8'"></span>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <p class="truncate text-sm font-semibold text-slate-900" x-text="plan.title"></p>
+                      <span x-show="plan.weekLabel" class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-500" x-text="plan.weekLabel"></span>
+                      <span x-show="plan.part" class="shrink-0 rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">P<span x-text="plan.part"></span></span>
+                    </div>
+                    <p class="text-xs text-slate-500">
+                      <span x-text="plan.date"></span>
+                      <span x-show="plan.daySlot"> &middot; <span x-text="plan.daySlot"></span></span>
+                      <span x-show="plan.slotTime"> &middot; <span x-text="plan.slotTime"></span></span>
+                      <span x-text="' \u00B7 ' + plan.yearGroup + ' \u00B7 ' + plan.duration + ' min'"></span>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-1.5">
+                  <template x-for="s in plan.skillArea" :key="s">
+                    <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700" x-text="s"></span>
+                  </template>
+                  <button @click.stop="deletePlan(plan.id)" class="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-500">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                  </button>
+                </div>
+              </div>
+              <!-- body -->
+              <div x-show="plan._open" x-collapse class="px-5 py-4 space-y-5 text-sm">
+
+                <!-- song -->
+                <div x-show="plan.song" class="rounded-lg border bg-amber-50 p-3">
+                  <p class="mb-1 text-xs font-semibold text-amber-800" x-text="plan.song.title"></p>
+                  <pre class="whitespace-pre-wrap font-sans text-xs text-amber-700" x-text="plan.song.lyrics"></pre>
+                </div>
+
+                <!-- objectives -->
+                <div>
+                  <h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-600">Learning Objectives</h4>
+                  <ul class="space-y-1">
+                    <template x-for="(obj, i) in plan.learningObjectives" :key="i">
+                      <li class="flex items-start gap-2 text-slate-600">
+                        <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400"></span>
+                        <span x-text="obj"></span>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+
+                <!-- activities -->
+                <div>
+                  <h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-600">Activities</h4>
+                  <div class="space-y-2">
+                    <template x-for="(act, i) in plan.activities" :key="act.id">
+                      <div class="relative flex gap-3">
+                        <div x-show="i < plan.activities.length - 1" class="absolute left-[15px] top-8 h-full w-px bg-slate-200"></div>
+                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                          x-bind:class="{
+                            'bg-amber-100 text-amber-700': act.phase === 'Set Induction',
+                            'bg-blue-100 text-blue-700': act.phase === 'Pre-lesson',
+                            'bg-green-100 text-green-700': act.phase === 'Lesson Development',
+                            'bg-purple-100 text-purple-700': act.phase === 'Post-lesson',
+                            'bg-rose-100 text-rose-700': act.phase === 'Closure'
+                          }"
+                          x-text="act.phase[0]">
+                        </div>
+                        <div class="flex-1 rounded-lg border bg-slate-50 p-3">
+                          <div class="mb-1 flex items-center justify-between gap-2">
+                            <span class="text-sm font-medium text-slate-800" x-text="act.phase"></span>
+                            <span class="shrink-0 text-xs text-slate-400" x-text="act.duration + ' min'"></span>
+                          </div>
+                          <p class="text-xs text-slate-600" x-text="act.description"></p>
+                          <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500">
+                            <div><span class="font-medium text-slate-700">Teacher:</span> <span x-text="act.teacherRole"></span></div>
+                            <div><span class="font-medium text-slate-700">Students:</span> <span x-text="act.studentRole"></span></div>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- meta tags -->
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div class="rounded-lg border bg-slate-50 p-3">
+                    <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">\uD83D\uDEE0\uFE0F Teaching Aids</p>
+                    <div class="flex flex-wrap gap-1">
+                      <template x-for="aid in plan.teachingAids" :key="aid">
+                        <span class="rounded-md border bg-white px-2 py-0.5 text-[11px] text-slate-600" x-text="aid"></span>
+                      </template>
+                    </div>
+                  </div>
+                  <div class="rounded-lg border bg-slate-50 p-3">
+                    <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">\u2764\uFE0F Moral Values</p>
+                    <div class="flex flex-wrap gap-1">
+                      <template x-for="v in plan.moralValues" :key="v">
+                        <span class="rounded-md border bg-white px-2 py-0.5 text-[11px] text-slate-600" x-text="v"></span>
+                      </template>
+                    </div>
+                  </div>
+                  <div class="rounded-lg border bg-slate-50 p-3">
+                    <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">\uD83C\uDF10 CCE</p>
+                    <div class="flex flex-wrap gap-1">
+                      <template x-for="c in plan.cce" :key="c">
+                        <span class="rounded-md border bg-white px-2 py-0.5 text-[11px] text-slate-600" x-text="c"></span>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- reflection -->
+                <div>
+                  <h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">\uD83D\uDCDD Teacher's Reflection</h4>
+                  <textarea
+                    x-model="plan.reflection"
+                    placeholder="How did the lesson go? What worked well? What needs improvement?&#10;e.g. Pupils enjoyed the robot song. Low-readiness group needed more scaffolding with the labelling task."
+                    class="w-full rounded-lg border border-slate-300 bg-white p-3 text-xs text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    rows="3"
+                  ></textarea>
+                </div>
+
+                <!-- copy / print -->
+                <div class="flex flex-wrap gap-2 border-t pt-4">
+                  <button @click.stop="copyPlan(plan)" class="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/></svg>
+                    Copy
+                  </button>
+                  <button @click.stop="printPlan(plan)" class="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z"/></svg>
+                    Print / PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
+
+      <!-- ══════════════ TAB: CURRICULUM DATABASE ══════════════ -->
+      <section x-show="activeTab === 'curriculum'" x-cloak class="fade-in mx-auto max-w-5xl">
+
+        <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-slate-900">Curriculum Database</h1>
+            <p class="mt-1 text-sm text-slate-500">DSKP-aligned units &amp; lesson modules for Years 1–6.</p>
+          </div>
+          <select x-model="curriculumYear" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 sm:w-48">
+            <template x-for="y in yearGroups" :key="y">
+              <option x-bind:value="y" x-text="y"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Textbook info -->
+        <div class="mb-6 rounded-xl border bg-white p-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-lg">📖</span>
+            <div>
+              <p class="text-sm font-semibold text-slate-900" x-text="currentTextbook?.title || '\u2014'"></p>
+              <p class="text-xs text-slate-500" x-text="`${curriculumYear} \u00B7 Publisher: ${currentTextbook?.publisher || '\u2014'}`"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Units list -->
+        <div class="space-y-4">
+          <template x-for="(unit, idx) in curriculumForYear()" :key="idx">
+            <div class="rounded-xl border bg-white shadow-sm">
+              <div
+                @click="unit._open = !unit._open"
+                class="flex cursor-pointer items-center justify-between px-5 py-3"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="shrink-0 text-slate-400" x-text="unit._open ? '\u25BE' : '\u25B8'"></span>
+                  <div>
+                    <p class="text-sm font-medium text-slate-900">
+                      <span class="rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-mono text-indigo-700" x-text="unit.code"></span>
+                      <span class="ml-2" x-text="unit.description"></span>
+                    </p>
+                    <p class="mt-0.5 text-xs text-slate-400" x-text="unit.skillArea"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div x-show="unit._open" x-collapse class="border-t px-5 py-4 space-y-4">
+
+                <!-- Content Standards -->
+                <template x-if="unit.contentStandards.length">
+                  <div>
+                    <h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">\uD83D\uDCCB Content Standards</h4>
+                    <div class="flex flex-wrap gap-1.5">
+                      <template x-for="cs in unit.contentStandards" :key="cs.code">
+                        <span class="rounded-md border bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
+                          <span class="font-mono font-medium" x-text="cs.code"></span>
+                          <span x-text="': ' + cs.description"></span>
+                          <span class="ml-1 rounded bg-indigo-100 px-1 text-[10px] text-indigo-600" x-text="cs.skillArea"></span>
+                        </span>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Learning Standards -->
+                <template x-if="unit.learningStandards.length">
+                  <div>
+                    <h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">\uD83C\uDFAF Learning Standards</h4>
+                    <div class="space-y-1">
+                      <template x-for="(ls, li) in unit.learningStandards" :key="li">
+                        <div class="flex items-start gap-2 text-sm text-slate-600">
+                          <span class="shrink-0 font-mono text-xs text-slate-400" x-text="ls.code"></span>
+                          <span x-text="ls.description"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Learning Objectives -->
+                <template x-if="unit.learningObjectives.length">
+                  <div>
+                    <h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">\u2705 Learning Objectives</h4>
+                    <ul class="space-y-1">
+                      <template x-for="(obj, i) in unit.learningObjectives" :key="i">
+                        <li class="flex items-start gap-2 text-sm text-slate-600">
+                          <span class="mt-1 block h-1.5 w-1.5 shrink-0 rounded-full bg-green-400"></span>
+                          <span x-text="obj"></span>
+                        </li>
+                      </template>
+                    </ul>
+                  </div>
+                </template>
+
+                <!-- Songs -->
+                <template x-if="unit.songs.length">
+                  <div>
+                    <h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">\uD83C\uDFB5 Theme Song</h4>
+                    <template x-for="(song, si) in unit.songs" :key="si">
+                      <div class="rounded-lg border bg-amber-50 p-3">
+                        <p class="mb-1 text-sm font-medium text-amber-800" x-text="song.title"></p>
+                        <pre class="whitespace-pre-wrap font-sans text-xs text-amber-700" x-text="song.lyrics"></pre>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- Module (Part 1 & 2) -->
+                <template x-if="unit.modules">
+                  <div>
+                    <h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">\uD83D\uDCD0 Lesson Module</h4>
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <template x-for="(mod, key) in unit.modules" :key="key">
+                        <div class="rounded-lg border bg-slate-50 p-3">
+                          <p class="mb-2 text-sm font-semibold text-slate-800" x-text="mod.title"></p>
+                          <p class="mb-2 text-xs text-slate-500" x-text="'Duration: ' + mod.duration + ' min'"></p>
+                          <div class="space-y-2">
+                            <template x-for="(seg, si) in mod.segments" :key="si">
+                              <div class="border-l-2 pl-3" x-bind:class="{
+                                'border-amber-300': seg.phase === 'Set Induction',
+                                'border-blue-300': seg.phase === 'Pre-lesson',
+                                'border-green-300': seg.phase === 'Lesson Development',
+                                'border-purple-300': seg.phase === 'Post-lesson',
+                                'border-rose-300': seg.phase === 'Closure'
+                              }">
+                                <p class="text-xs font-medium text-slate-700" x-text="seg.phase + ' (' + seg.duration + ' min)'"></p>
+                                <p class="mt-0.5 whitespace-pre-wrap text-xs text-slate-600" x-text="seg.description"></p>
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Teaching Aids / Moral Values / CCE -->
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div x-show="unit.teachingAids.length" class="rounded-lg border bg-slate-50 p-3">
+                    <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">\uD83D\uDEE0\uFE0F Teaching Aids</p>
+                    <div class="flex flex-wrap gap-1">
+                      <template x-for="aid in unit.teachingAids" :key="aid">
+                        <span class="rounded-md border bg-white px-2 py-0.5 text-[11px] text-slate-600" x-text="aid"></span>
+                      </template>
+                    </div>
+                  </div>
+                  <div x-show="unit.moralValues.length" class="rounded-lg border bg-slate-50 p-3">
+                    <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">\u2764\uFE0F Moral Values</p>
+                    <div class="flex flex-wrap gap-1">
+                      <template x-for="v in unit.moralValues" :key="v">
+                        <span class="rounded-md border bg-white px-2 py-0.5 text-[11px] text-slate-600" x-text="v"></span>
+                      </template>
+                    </div>
+                  </div>
+                  <div x-show="unit.cce.length" class="rounded-lg border bg-slate-50 p-3">
+                    <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">\uD83C\uDF10 CCE</p>
+                    <div class="flex flex-wrap gap-1">
+                      <template x-for="c in unit.cce" :key="c">
+                        <span class="rounded-md border bg-white px-2 py-0.5 text-[11px] text-slate-600" x-text="c"></span>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('app', () => ({
+    // ── UI state ──
+    sidebarOpen: false,
+    activeTab: localStorage.getItem('malp_tab') || 'timetable',
+    tabs: [
+      { id: 'timetable', label: 'My Timetable', icon: '📅' },
+      { id: 'generate',  label: 'Generate Lesson Plans', icon: '📋' },
+      { id: 'curriculum', label: 'Curriculum Database', icon: '📚' },
+    ],
+
+    // ── Data ──
+    timetable: [],
+    lessonPlans: [],
+    curriculumYear: 'Year 3',
+    weekOffset: 0,
+    genWeekOffset: 0,
+
+    // ── Form state ──
+    form: { yearGroup: 'Year 1', unit: '', theme: 'World of Self, Family and Friends', topic: '', skillArea: 'Reading' },
+
+    // ── Constants ──
+    days: ['Monday','Tuesday','Wednesday','Thursday','Friday'],
+    yearGroups: ['Year 1','Year 2','Year 3','Year 4','Year 5','Year 6'],
+    themes: ['World of Self, Family and Friends','World of Stories','World of Knowledge','World of Arts'],
+    skillAreas: ['Listening','Speaking','Reading','Writing','Language Arts'],
+
+    // ── Computed ──
+    get availableUnits() {
+      return CURRICULUM_DB.units[this.form.yearGroup] || []
+    },
+
+    get currentTextbook() {
+      return CURRICULUM_DB.textbooks[this.curriculumYear]
+    },
+
+    get mingguLabel() {
+      return 'MINGGU ' + this.weekNumberFor(this.genWeekOffset)
+    },
+
+    get genDateRange() {
+      return this.weekDateRangeFor(this.genWeekOffset)
+    },
+
+    get slotsByDay() {
+      const map = {}
+      this.slotsForWeek.forEach(s => {
+        if (!map[s.day]) map[s.day] = []
+        map[s.day].push(s)
+      })
+      return map
+    },
+
+    get slotsForWeek() {
+      const range = this.weekBoundsFor(this.genWeekOffset)
+      return this.timetable.filter(s => {
+        const slotDate = this.dateForDay(s.day, range.mon)
+        return slotDate >= range.mon && slotDate <= range.fri
+      })
+    },
+
+    // ── Init ──
+    init() {
+      this.loadState()
+      this.$watch('activeTab', val => localStorage.setItem('malp_tab', val))
+      this.$watch('timetable', val => this.persist(), { deep: true })
+      this.$watch('lessonPlans', val => this.persist(), { deep: true })
+      this.$watch('form.yearGroup', () => { this.form.unit = '' })
+    },
+
+    onUnitChange() {
+      const unit = this.availableUnits.find(u => u.unitNumber == this.form.unit)
+      if (unit) {
+        this.form.theme = unit.theme
+        this.form.topic = unit.topic || unit.title
+      }
+    },
+
+    curriculumForYear() {
+      const year = this.curriculumYear
+      const units = CURRICULUM_DB.units[year] || []
+      return units.map(u => ({
+        code: 'Unit ' + u.unitNumber,
+        description: u.title,
+        skillArea: u.theme || '',
+        _open: u._open || false,
+        contentStandards: u.contentStandards || [],
+        learningStandards: u.learningStandards || [],
+        learningObjectives: u.learningObjectives || [],
+        successCriteria: u.successCriteria || [],
+        songs: u.songs || [],
+        modules: u.modules || null,
+        teachingAids: u.teachingAids || [],
+        moralValues: u.moralValues || [],
+        cce: u.cce || [],
+        textbook: CURRICULUM_DB.textbooks[year],
+      }))
+    },
+
+    // ── LocalStorage ──
+    loadState() {
+      try {
+        const d = JSON.parse(localStorage.getItem('malp_data'))
+        if (d) {
+          if (d.timetable) this.timetable = d.timetable
+          if (d.lessonPlans) this.lessonPlans = d.lessonPlans
+          if (d.curriculumYear) this.curriculumYear = d.curriculumYear
+          if (d.form) this.form = d.form
+          if (d.genWeekOffset != null) this.genWeekOffset = d.genWeekOffset
+          if (d.weekOffset != null) this.weekOffset = d.weekOffset
+        }
+        if (!this.timetable.length && !d) {
+          this.timetable = DEFAULT_TIMETABLE.map(s => ({ ...s }))
+        }
+      } catch (_) {
+        if (!this.timetable.length) {
+          this.timetable = DEFAULT_TIMETABLE.map(s => ({ ...s }))
+        }
+      }
+    },
+
+    persist() {
+      try {
+        localStorage.setItem('malp_data', JSON.stringify({
+          timetable: this.timetable,
+          lessonPlans: this.lessonPlans,
+          curriculumYear: this.curriculumYear,
+          form: this.form,
+          genWeekOffset: this.genWeekOffset,
+          weekOffset: this.weekOffset,
+        }))
+      } catch (_) {}
+    },
+
+    // ── Tab switching ──
+    switchTab(id) {
+      this.activeTab = id
+      this.sidebarOpen = false
+    },
+
+    // ── Timetable helpers ──
+    cellsFor(day, period) {
+      return this.timetable.filter(s => s.day === day && s.period === period)
+    },
+
+    weekNumber() {
+      return this.weekNumberFor(this.weekOffset)
+    },
+
+    weekDateRange() {
+      const r = this.weekBoundsFor(this.weekOffset)
+      const fmt = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' })
+      return `${fmt(r.mon)} – ${fmt(r.fri)} ${r.fri.getFullYear()}`
+    },
+
+    weekBoundsFor(offset) {
+      const now = new Date()
+      now.setDate(now.getDate() + (offset || 0) * 7)
+      const day = now.getDay()
+      const mon = new Date(now); mon.setDate(now.getDate() - ((day + 6) % 7))
+      const fri = new Date(mon); fri.setDate(mon.getDate() + 4)
+      return { mon, fri }
+    },
+
+    weekNumberFor(offset) {
+      const now = new Date()
+      now.setDate(now.getDate() + (offset || 0) * 7)
+      const start = new Date(now.getFullYear(), 0, 1)
+      return Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7)
+    },
+
+    weekDateRangeFor(offset) {
+      const r = this.weekBoundsFor(offset)
+      const fmt = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' })
+      return `${fmt(r.mon)} – ${fmt(r.fri)} ${r.fri.getFullYear()}`
+    },
+
+    dateForDay(dayName, referenceDate) {
+      const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+      const targetIdx = days.indexOf(dayName)
+      if (targetIdx === -1) return referenceDate
+      const refDay = referenceDate.getDay()
+      const diff = targetIdx - refDay
+      const d = new Date(referenceDate)
+      d.setDate(d.getDate() + diff)
+      return d
+    },
+
+    editSlot(day, period, existing) {
+      const slot = existing || { id: '', day, period, part: 1, startTime: '08:00', endTime: '09:00', yearGroup: 'Year 1', subject: 'English' }
+      const name = prompt(`Edit slot (Y${slot.yearGroup.replace('Year ','')} · ${slot.startTime}–${slot.endTime})\nFormat: Year,Part,Start,End\nExample: 3,1,08:15,09:15`, `${slot.yearGroup.replace('Year ','')},${slot.part || 1},${slot.startTime},${slot.endTime}`)
+      if (!name) return
+      const parts = name.split(',').map(s => s.trim())
+      if (parts.length >= 4) {
+        const [yr, pt, st, en] = parts
+        const yearGroup = 'Year ' + yr
+        if (!this.yearGroups.includes(yearGroup)) { alert('Invalid year. Use 1–6.'); return }
+        const updated = { ...slot, yearGroup, part: parseInt(pt) || 1, startTime: st, endTime: en, id: slot.id || crypto.randomUUID() }
+        if (existing) {
+          this.timetable = this.timetable.map(s => s.id === updated.id ? updated : s)
+        } else {
+          this.timetable = [...this.timetable, updated]
+        }
+      } else {
+        alert('Format: Year,Part,Start,End  (e.g. 3,1,08:15,09:15)')
+      }
+    },
+
+    yearBadge(year) {
+      const map = {
+        'Year 1': 'bg-blue-100 text-blue-800 border-blue-200',
+        'Year 2': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        'Year 3': 'bg-amber-100 text-amber-800 border-amber-200',
+        'Year 4': 'bg-purple-100 text-purple-800 border-purple-200',
+        'Year 5': 'bg-rose-100 text-rose-800 border-rose-200',
+        'Year 6': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      }
+      return map[year] || 'bg-slate-100 text-slate-800 border-slate-200'
+    },
+
+    exportTimetable() {
+      const text = this.timetable.map(s =>
+        `${s.day} P${s.period}${s.part ? ' (Part '+s.part+')' : ''}: ${s.startTime}–${s.endTime} — ${s.yearGroup}`
+      ).join('\n')
+      navigator.clipboard.writeText(text || 'No slots').then(() => alert('Timetable copied to clipboard!'))
+    },
+
+    // ── Plan generation ──
+    generateId() {
+      return crypto.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2)
+    },
+
+    generatePlan(mode) {
+      const f = this.form
+      const unit = f.unit ? this.availableUnits.find(u => u.unitNumber == f.unit) : null
+      const plan = {
+        id: this.generateId(),
+        title: `${mode === 'daily' ? 'Daily' : mode === 'weekly' ? 'Weekly' : 'Monthly'} Lesson Plan — ${f.topic || f.theme}`,
+        yearGroup: f.yearGroup,
+        subject: 'English',
+        theme: f.theme,
+        topic: f.topic,
+        skillArea: [f.skillArea],
+        date: new Date().toISOString().split('T')[0],
+        duration: 60,
+        weekNumber: mode === 'weekly' ? this.weekNumber() : undefined,
+        month: mode === 'monthly' ? new Date().toLocaleString('default', { month: 'long' }) : undefined,
+        learningObjectives: unit?.learningObjectives?.length
+          ? unit.learningObjectives
+          : [
+              `By the end of the lesson, pupils will be able to ${f.skillArea.toLowerCase()} at least 3 items related to ${f.topic || f.theme}.`,
+              `Pupils will be able to respond to simple questions about ${f.topic || 'the topic'} with guidance.`,
+            ],
+        successCriteria: unit?.successCriteria?.length
+          ? unit.successCriteria
+          : ['Pupils can identify key vocabulary.', 'Pupils can complete a task with minimal help.'],
+        teachingAids: unit?.teachingAids?.length
+          ? unit.teachingAids
+          : ['Whiteboard', 'Worksheets', 'Picture cards'],
+        moralValues: unit?.moralValues?.length
+          ? unit.moralValues
+          : ['Cooperation', 'Respect'],
+        cce: unit?.cce?.length
+          ? unit.cce
+          : ['Language', 'Creativity and Innovation'],
+        activities: unit?.modules
+          ? this.buildActivitiesFromModule(unit)
+          : [
+              { id: this.generateId(), phase: 'Set Induction', description: `Engage pupils with a song or game about ${f.topic || f.theme}.`, duration: 10, teacherRole: 'Facilitator', studentRole: 'Participant' },
+              { id: this.generateId(), phase: 'Pre-lesson', description: 'Introduce and drill key vocabulary using flashcards.', duration: 10, teacherRole: 'Instructor', studentRole: 'Listener' },
+              { id: this.generateId(), phase: 'Lesson Development', description: `Main activity: pupils complete a task related to ${f.topic || 'the theme'}.`, duration: 25, teacherRole: 'Facilitator', studentRole: 'Active learner' },
+              { id: this.generateId(), phase: 'Post-lesson', description: 'Pupils present their work and give feedback.', duration: 10, teacherRole: 'Moderator', studentRole: 'Presenter' },
+              { id: this.generateId(), phase: 'Closure', description: 'Recap key points. Exit ticket: "One new word I learned is ____".', duration: 5, teacherRole: 'Facilitator', studentRole: 'Reflector' },
+            ],
+        _open: true,
+      }
+      this.lessonPlans = [plan, ...this.lessonPlans]
+    },
+
+    buildActivitiesFromModule(unit, partFilter) {
+      const acts = []
+      if (!unit.modules) return acts
+      Object.keys(unit.modules).forEach(key => {
+        const mod = unit.modules[key]
+        if (partFilter && !key.includes(partFilter)) return
+        mod.segments.forEach(seg => {
+          acts.push({
+            id: this.generateId(),
+            phase: seg.phase,
+            description: seg.description,
+            duration: seg.duration,
+            teacherRole: seg.teacherRole || 'Facilitator',
+            studentRole: seg.studentRole || 'Participant',
+          })
+        })
+      })
+      return acts
+    },
+
+    generateWeekPlans() {
+      const f = this.form
+      const range = this.weekBoundsFor(this.genWeekOffset)
+      const fmt = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+
+      Object.keys(this.slotsByDay).forEach(day => {
+        const slots = this.slotsByDay[day]
+        const slotDate = this.dateForDay(day, range.mon)
+        const dateStr = fmt(slotDate)
+
+        slots.forEach(slot => {
+          const unit = f.unit
+            ? this.availableUnits.find(u => u.unitNumber == f.unit)
+            : (CURRICULUM_DB.units[slot.yearGroup] || [])[0]
+
+          if (!unit) return
+
+          const isPart2 = slot.part === 2
+          const moduleKey = isPart2 ? 'part2' : 'part1'
+          const suffix = isPart2 ? ' (Part 2)' : ' (Part 1)'
+
+          const plan = {
+            id: this.generateId(),
+            title: `Daily Lesson Plan — ${unit.title}${suffix}`,
+            yearGroup: slot.yearGroup,
+            subject: 'English',
+            theme: unit.theme || f.theme,
+            topic: unit.topic || unit.title,
+            skillArea: [f.skillArea],
+            date: dateStr,
+            weekLabel: this.mingguLabel,
+            daySlot: slot.day,
+            slotTime: slot.startTime + '\u2013' + slot.endTime,
+            duration: this.minutesBetween(slot.startTime, slot.endTime),
+            part: slot.part,
+            learningObjectives: unit.learningObjectives?.length
+              ? unit.learningObjectives
+              : [`By the end of the lesson, pupils will be able to identify key concepts related to ${unit.title}.`],
+            successCriteria: unit.successCriteria?.length
+              ? unit.successCriteria
+              : ['Pupils can identify key vocabulary.', 'Pupils can complete a task with minimal help.'],
+            teachingAids: unit.teachingAids?.length
+              ? unit.teachingAids
+              : ['Whiteboard', 'Worksheets', 'Picture cards'],
+            moralValues: unit.moralValues?.length
+              ? unit.moralValues
+              : ['Cooperation', 'Respect'],
+            cce: unit.cce?.length
+              ? unit.cce
+              : ['Language', 'Creativity and Innovation'],
+            activities: unit.modules
+              ? this.buildActivitiesFromModule(unit, moduleKey)
+              : [
+                  { id: this.generateId(), phase: 'Set Induction', description: 'Engage pupils with a starter activity.', duration: 5, teacherRole: 'Facilitator', studentRole: 'Participant' },
+                  { id: this.generateId(), phase: 'Pre-lesson', description: 'Introduce key vocabulary.', duration: 5, teacherRole: 'Instructor', studentRole: 'Listener' },
+                  { id: this.generateId(), phase: 'Lesson Development', description: 'Main task related to ' + unit.title, duration: Math.max(15, this.minutesBetween(slot.startTime, slot.endTime) - 15), teacherRole: 'Facilitator', studentRole: 'Active learner' },
+                  { id: this.generateId(), phase: 'Post-lesson', description: 'Pupils share their work.', duration: 5, teacherRole: 'Moderator', studentRole: 'Presenter' },
+                  { id: this.generateId(), phase: 'Closure', description: 'Recap and exit ticket.', duration: 5, teacherRole: 'Facilitator', studentRole: 'Reflector' },
+                ],
+            song: unit.songs?.[0] || null,
+            reflection: '',
+            _open: true,
+          }
+          this.lessonPlans = [plan, ...this.lessonPlans]
+        })
+      })
+    },
+
+    minutesBetween(start, end) {
+      const [sh, sm] = start.split(':').map(Number)
+      const [eh, em] = end.split(':').map(Number)
+      return (eh * 60 + em) - (sh * 60 + sm)
+    },
+
+    deletePlan(id) {
+      if (confirm('Delete this lesson plan?')) {
+        this.lessonPlans = this.lessonPlans.filter(p => p.id !== id)
+      }
+    },
+
+    copyPlan(plan) {
+      const lines = [
+        plan.title, '',
+        `Date: ${plan.date}  |  ${plan.yearGroup}  |  ${plan.duration} min`,
+        `Theme: ${plan.theme}  |  Topic: ${plan.topic}`,
+        `Skills: ${plan.skillArea.join(', ')}`, '',
+        'LEARNING OBJECTIVES:',
+        ...plan.learningObjectives.map(o => `  \u2022 ${o}`), '',
+        'ACTIVITIES:',
+        ...plan.activities.map(a => `  [${a.phase}] ${a.description} (${a.duration} min)`), '',
+        `Teaching Aids: ${plan.teachingAids.join(', ')}`,
+        `Moral Values: ${plan.moralValues.join(', ')}`,
+        `CCE: ${plan.cce.join(', ')}`,
+        plan.reflection ? `\nTEACHER'S REFLECTION:\n${plan.reflection}` : '',
+      ]
+      navigator.clipboard.writeText(lines.join('\n'))
+    },
+
+    printPlan(plan) {
+      const w = window.open('', '_blank')
+      if (!w) return
+      w.document.write(`
+        <html><head><title>${plan.title}</title>
+        <style>
+          @page { margin: 1.5cm; size: A4; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; padding: 0; max-width: 210mm; margin: 0 auto; color: #1e293b; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .header { border-bottom: 3px solid #4f46e5; padding-bottom: .75rem; margin-bottom: 1.25rem; }
+          .header h1 { font-size: 1.3rem; font-weight: 700; color: #1e293b; }
+          .header .meta { font-size: .8rem; color: #64748b; margin-top: .25rem; }
+          .header .badges { display: flex; flex-wrap: wrap; gap: .375rem; margin-top: .5rem; }
+          .badge { display: inline-block; background: #eef2ff; color: #4f46e5; border-radius: 9999px; padding: .125rem .625rem; font-size: .7rem; font-weight: 600; }
+          .section { margin-top: 1.25rem; }
+          .section h2 { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #4f46e5; border-bottom: 2px solid #e2e8f0; padding-bottom: .25rem; margin-bottom: .5rem; }
+          .section ul { list-style: none; padding: 0; }
+          .section li { padding: .2rem 0; font-size: .8rem; position: relative; padding-left: 1rem; }
+          .section li::before { content: ''; position: absolute; left: 0; top: .6rem; width: 5px; height: 5px; border-radius: 50%; background: #4f46e5; }
+          .activity { border: 1px solid #e2e8f0; border-radius: .5rem; padding: .65rem .75rem; margin-bottom: .6rem; break-inside: avoid; }
+          .activity h3 { font-size: .8rem; font-weight: 600; color: #4f46e5; margin-bottom: .2rem; }
+          .activity .dur { font-size: .7rem; color: #94a3b8; font-weight: 400; }
+          .activity p { font-size: .78rem; color: #475569; }
+          .activity .roles { display: flex; gap: 1rem; margin-top: .35rem; font-size: .7rem; color: #64748b; }
+          .activity .roles span { font-weight: 600; color: #334155; }
+          .tags { display: flex; flex-wrap: wrap; gap: .375rem; margin-top: .25rem; }
+          .tag { display: inline-block; background: #f1f5f9; border-radius: 9999px; padding: .125rem .55rem; font-size: .72rem; color: #475569; }
+          .reflection { margin-top: 1.25rem; border-top: 2px solid #e2e8f0; padding-top: .75rem; }
+          .reflection h2 { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #4f46e5; margin-bottom: .35rem; }
+          .reflection p { font-size: .8rem; color: #475569; font-style: italic; white-space: pre-wrap; }
+          .footer { margin-top: 1.5rem; padding-top: .75rem; border-top: 2px solid #e2e8f0; font-size: .68rem; color: #94a3b8; text-align: center; }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none !important; }
+          }
+        </style>
+        </head><body>
+        <div class="header">
+          <h1>${this.escapeHtml(plan.title)}</h1>
+          <div class="meta">${plan.date}${plan.daySlot ? ' \u00B7 ' + plan.daySlot : ''}${plan.slotTime ? ' \u00B7 ' + plan.slotTime : ''} \u00B7 ${plan.yearGroup} \u00B7 ${plan.duration} min</div>
+          <div class="badges">
+            <span class="badge">${plan.theme}</span>
+            <span class="badge">${plan.topic || '—'}</span>
+            ${plan.skillArea.map(s => '<span class="badge">' + s + '</span>').join('')}
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Learning Objectives</h2>
+          <ul>${plan.learningObjectives.map(o => '<li>' + this.escapeHtml(o) + '</li>').join('')}</ul>
+        </div>
+
+        ${plan.song ? '<div class="section"><h2>Theme Song</h2><p style="font-size:.8rem;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:.5rem;padding:.65rem .75rem;white-space:pre-wrap">' + this.escapeHtml(plan.song.title) + '\n' + this.escapeHtml(plan.song.lyrics) + '</p></div>' : ''}
+
+        <div class="section">
+          <h2>Activities</h2>
+          ${plan.activities.map(a => '<div class="activity"><h3>' + this.escapeHtml(a.phase) + ' <span class="dur">\u2014 ' + a.duration + ' min</span></h3><p>' + this.escapeHtml(a.description) + '</p><div class="roles"><div><span>Teacher:</span> ' + this.escapeHtml(a.teacherRole) + '</div><div><span>Students:</span> ' + this.escapeHtml(a.studentRole) + '</div></div></div>').join('')}
+        </div>
+
+        ${plan.teachingAids.length ? '<div class="section"><h2>Teaching Aids</h2><div class="tags">' + plan.teachingAids.map(a => '<span class="tag">' + this.escapeHtml(a) + '</span>').join('') + '</div></div>' : ''}
+        ${plan.moralValues.length ? '<div class="section"><h2>Moral Values</h2><div class="tags">' + plan.moralValues.map(v => '<span class="tag">' + this.escapeHtml(v) + '</span>').join('') + '</div></div>' : ''}
+        ${plan.cce.length ? '<div class="section"><h2>CCE</h2><div class="tags">' + plan.cce.map(c => '<span class="tag">' + this.escapeHtml(c) + '</span>').join('') + '</div></div>' : ''}
+
+        ${plan.reflection ? '<div class="reflection"><h2>Teacher\u2019s Reflection</h2><p>' + this.escapeHtml(plan.reflection) + '</p></div>' : ''}
+
+        <div class="footer">Generated by MALP \u2014 Malaysian Lesson Planner &middot; erph-moe</div>
+        <p class="no-print" style="text-align:center;margin-top:1rem"><button onclick="window.print()" style="background:#4f46e5;color:#fff;border:none;border-radius:.5rem;padding:.5rem 1.5rem;font-size:.9rem;cursor:pointer">Print / Save PDF</button> <button onclick="window.close()" style="background:#e2e8f0;color:#475569;border:none;border-radius:.5rem;padding:.5rem 1.5rem;font-size:.9rem;cursor:pointer;margin-left:.5rem">Close</button></p>
+        </body></html>
+      `)
+      w.document.close()
+      w.focus()
+      setTimeout(() => { try { w.print() } catch(_) {} }, 500)
+    },
+
+    escapeHtml(str) {
+      if (!str) return ''
+      const d = document.createElement('div')
+      d.textContent = str
+      return d.innerHTML
+    },
+
+    exportAllPlans() {
+      const text = this.lessonPlans.map(p => {
+        return `${p.title}\n${p.date} | ${p.yearGroup}\n${p.learningObjectives.join('; ')}\n---`
+      }).join('\n\n')
+      navigator.clipboard.writeText(text || 'No plans')
+    },
+  }))
+})
+
+// ── Default timetable (pre-populated on first visit) ──
+const DEFAULT_TIMETABLE = [
+  { id: 'mon-y3p1', day: 'Monday',    period: 2, part: 1, startTime: '08:15', endTime: '09:15', yearGroup: 'Year 3', subject: 'English' },
+  { id: 'mon-y2p1', day: 'Monday',    period: 3, part: 1, startTime: '09:15', endTime: '10:15', yearGroup: 'Year 2', subject: 'English' },
+  { id: 'mon-y3p2', day: 'Monday',    period: 5, part: 2, startTime: '11:05', endTime: '11:35', yearGroup: 'Year 3', subject: 'English' },
+  { id: 'mon-y2p2', day: 'Monday',    period: 5, part: 2, startTime: '11:35', endTime: '12:05', yearGroup: 'Year 2', subject: 'English' },
+  { id: 'tue-y5p1', day: 'Tuesday',   period: 1, part: 1, startTime: '07:45', endTime: '08:45', yearGroup: 'Year 5', subject: 'English' },
+  { id: 'tue-y2p1', day: 'Tuesday',   period: 3, part: 1, startTime: '09:45', endTime: '11:05', yearGroup: 'Year 2', subject: 'English' },
+  { id: 'tue-y6p1', day: 'Tuesday',   period: 5, part: 1, startTime: '11:05', endTime: '12:05', yearGroup: 'Year 6', subject: 'English' },
+  { id: 'wed-y6p1', day: 'Wednesday', period: 2, part: 1, startTime: '08:15', endTime: '09:15', yearGroup: 'Year 6', subject: 'English' },
+  { id: 'wed-y5p1', day: 'Wednesday', period: 4, part: 1, startTime: '10:35', endTime: '11:35', yearGroup: 'Year 5', subject: 'English' },
+  { id: 'thu-y1p1', day: 'Thursday',  period: 2, part: 1, startTime: '08:15', endTime: '09:15', yearGroup: 'Year 1', subject: 'English' },
+  { id: 'thu-y5p1', day: 'Thursday',  period: 3, part: 1, startTime: '09:45', endTime: '11:05', yearGroup: 'Year 5', subject: 'English' },
+  { id: 'thu-y1p2', day: 'Thursday',  period: 6, part: 2, startTime: '12:05', endTime: '12:35', yearGroup: 'Year 1', subject: 'English' },
+  { id: 'fri-y6p1', day: 'Friday',    period: 2, part: 1, startTime: '08:15', endTime: '09:15', yearGroup: 'Year 6', subject: 'English' },
+  { id: 'fri-y1p1', day: 'Friday',    period: 3, part: 1, startTime: '09:45', endTime: '11:05', yearGroup: 'Year 1', subject: 'English' },
+  { id: 'fri-y3p1', day: 'Friday',    period: 5, part: 1, startTime: '11:35', endTime: '12:35', yearGroup: 'Year 3', subject: 'English' },
+]
+
+// ── Curriculum Database ──
+const CURRICULUM_DB = {
+  textbooks: {
+    'Year 1': { title: 'Superminds 1', publisher: 'Cambridge University Press' },
+    'Year 2': { title: 'Superminds 2', publisher: 'Cambridge University Press' },
+    'Year 3': { title: 'Get Smart 3', publisher: 'MM Publications' },
+    'Year 4': { title: 'Get Smart Plus 4', publisher: 'MM Publications' },
+    'Year 5': { title: 'English Plus 1', publisher: 'Oxford University Press' },
+    'Year 6': { title: 'Academy Stars', publisher: 'Macmillan Education' },
+  },
+  units: {
+    'Year 1': [
+      { unitNumber: 1, title: 'At School', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 2, title: "Let's Play!", theme: 'World of Self, Family and Friends' },
+      { unitNumber: 3, title: 'My Pet', theme: 'World of Knowledge' },
+      { unitNumber: 4, title: 'Lunchtime', theme: 'World of Knowledge' },
+      { unitNumber: 5, title: 'Free Time', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 6, title: 'The Old House', theme: 'World of Stories' },
+      { unitNumber: 7, title: 'Get Dressed', theme: 'World of Knowledge' },
+      { unitNumber: 8, title: 'The Robot', theme: 'World of Knowledge' },
+      { unitNumber: 9, title: 'At the Beach', theme: 'World of Knowledge' },
+    ],
+    'Year 2': [
+      { unitNumber: 1, title: "What's Your Name?", theme: 'World of Self, Family and Friends' },
+      { unitNumber: 2, title: "Where Do You Live?", theme: 'World of Self, Family and Friends' },
+      { unitNumber: 3, title: 'My Body', theme: 'World of Knowledge' },
+      { unitNumber: 4, title: 'My Family', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 5, title: 'Free Time', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 6, title: 'The Old House', theme: 'World of Stories' },
+      { unitNumber: 7, title: 'Hobbies', theme: 'World of Self, Family and Friends' },
+      {
+        unitNumber: 8, title: 'The Robot', topic: 'The Robot', theme: 'World of Knowledge',
+        contentStandards: [
+          { code: '2.1', description: 'Communicate simple information clearly', skillArea: 'Speaking' },
+          { code: '3.2', description: 'Understand a variety of linear and non-linear texts', skillArea: 'Reading' },
+          { code: '4.2', description: 'Write using appropriate language and format', skillArea: 'Writing' },
+          { code: '5.1', description: 'Enjoy and appreciate rhymes, poems and songs', skillArea: 'Language Arts' },
+        ],
+        learningStandards: [
+          { code: '2.1.1', description: 'Give simple personal details using basic statements' },
+          { code: '2.1.5', description: 'Describe objects using suitable words and phrases' },
+          { code: '3.2.1', description: 'Identify the main idea of simple texts' },
+          { code: '3.2.3', description: 'Read and understand simple descriptions' },
+          { code: '4.2.3', description: 'Write short simple texts with guidance' },
+          { code: '4.2.5', description: 'Use capital letters and full stops appropriately' },
+          { code: '5.1.2', description: 'Participate in action songs and rhymes' },
+        ],
+        learningObjectives: [
+          'By the end of the lesson, pupils will be able to identify at least 4 out of 6 body parts in a picture correctly.',
+          'Pupils will be able to describe a robot using at least 3 adjectives (e.g. big, small, strong) with guidance.',
+          'Pupils will be able to write 2 simple sentences about their robot using "has got" with at least 75% accuracy.',
+        ],
+        successCriteria: [
+          'I can name 4 body parts.',
+          'I can describe my robot using words like big, small, long, short.',
+          'I can write "My robot has got..." correctly.',
+        ],
+        songs: [{
+          title: 'The Robot Song',
+          lyrics: '(Capo 2)\n\n[G]I am a robot, [D]look at me\n[Em]I can move my [Cadd9]arms, you see\n[G]Left and right and [D]up and down\n[Em]I can turn my [Cadd9]head around\n\n[G]Robot, robot, [D]beep beep beep\n[Em]Robot, robot, [Cadd9]dance with me!\n\n[G]Shake your hands and [D]stamp your feet\n[Em]Move your body [Cadd9]to the beat\n[G]Wiggle fingers, [D]touch your nose\n[Em]Robot dancing [Cadd9]as he goes'
+        }],
+        modules: {
+          part1: {
+            title: 'Part 1: Vocabulary & Listening',
+            duration: 30,
+            segments: [
+              {
+                phase: 'Set Induction', duration: 5,
+                description: 'Play "Simon Says Body Parts" \u2014 teacher gives commands using body parts (touch your nose, shake your head, stamp your feet).\n[Differentiated Process] Advanced: Commands without visual cues. Standard: Commands with teacher modeling. Low: Slower pace with 1:1 support.\n[Differentiated Product] All tiers: Demonstrate understanding by pointing to the correct body part.',
+                teacherRole: 'Facilitator \u2014 gives commands and models actions',
+                studentRole: 'Participant \u2014 listen and respond to commands'
+              },
+              {
+                phase: 'Pre-lesson', duration: 5,
+                description: 'Flashcard drill: Show body part flashcards (head, shoulders, knees, toes, eyes, ears, mouth, nose, arms, hands, legs, feet). Pupils chorally repeat.\n[Differentiated Process] Advanced: Spell the word after naming. Standard: Repeat word and touch body part. Low: Repeat word with picture support.\n[Differentiated Product] All tiers: Match word card to picture card in pairs.',
+                teacherRole: 'Instructor \u2014 shows flashcards and leads drilling',
+                studentRole: 'Listener and repeater \u2014 choral and individual responses'
+              },
+              {
+                phase: 'Lesson Development', duration: 15,
+                description: 'Listen and label: Pupils listen to audio/song describing a robot and label the body parts on a worksheet.\n[Differentiated Process] Advanced: Label without word bank. Standard: Label with word bank. Low: Match labels to correct body parts (cut and paste).',
+                teacherRole: 'Facilitator \u2014 plays audio, circulates to support',
+                studentRole: 'Active learner \u2014 listen, identify, label'
+              },
+              {
+                phase: 'Post-lesson', duration: 3,
+                description: "Partner check: Pupils swap worksheets and check each other's answers.\n[Differentiated Process] Advanced: Peer correct without answer key. Standard: Peer check with answer key. Low: Teacher-guided check in small group.",
+                teacherRole: 'Moderator \u2014 monitors and guides peer checking',
+                studentRole: 'Peer assessor \u2014 check partner\'s work'
+              },
+              {
+                phase: 'Closure', duration: 2,
+                description: 'Recap: "Touch your..." game. Teacher calls out a body part, pupils touch it. Quick fire.',
+                teacherRole: 'Facilitator \u2014 leads quick recap game',
+                studentRole: 'Reflector \u2014 respond to prompts'
+              }
+            ]
+          },
+          part2: {
+            title: 'Part 2: Speaking & Writing',
+            duration: 30,
+            segments: [
+              {
+                phase: 'Set Induction', duration: 5,
+                description: 'Sing "The Robot Song" with actions (Capo 2: G, D, Em, Cadd9).',
+                teacherRole: 'Facilitator \u2014 leads song with guitar/recording',
+                studentRole: 'Participant \u2014 sing and do actions'
+              },
+              {
+                phase: 'Pre-lesson', duration: 5,
+                description: 'Adjectives input: Introduce size and shape adjectives through pictures \u2014 big/small, long/short, strong/weak.\n[Differentiated Process] Advanced: Give opposites without prompts. Standard: Match adjective pairs. Low: Repeat and point to visuals.',
+                teacherRole: 'Instructor \u2014 presents and drills adjectives',
+                studentRole: 'Listener \u2014 repeat and respond'
+              },
+              {
+                phase: 'Lesson Development', duration: 15,
+                description: 'Design and describe: Pupils draw their own robot and write 2 sentences using "has got" (e.g. "My robot has got big eyes. It has got long arms.").\n[Differentiated Process] Advanced: Write 4 sentences independently. Standard: Write 2 sentences with sentence frames. Low: Complete sentence frames (e.g. "My robot has got ___.") with word bank.\n[Differentiated Product] Advanced: Present robot to class with 3 details. Standard: Present to partner. Low: Point and name body parts on drawing.',
+                teacherRole: 'Facilitator \u2014 provides frames, circulates, scribes for low-readiness',
+                studentRole: 'Creator and writer \u2014 draw, write, describe'
+              },
+              {
+                phase: 'Post-lesson', duration: 3,
+                description: "Gallery walk: Pupils display their robots and read each other's descriptions.\n[Differentiated Process] All tiers: Walk around and read. Advanced: Write one positive comment on a sticky note.",
+                teacherRole: 'Moderator \u2014 organizes gallery walk',
+                studentRole: 'Presenter and audience \u2014 display and appreciate'
+              },
+              {
+                phase: 'Closure', duration: 2,
+                description: 'Exit ticket: "One word to describe my robot is ___."',
+                teacherRole: 'Facilitator \u2014 collects exit tickets',
+                studentRole: 'Reflector \u2014 complete exit ticket'
+              }
+            ]
+          }
+        },
+        teachingAids: ['Flashcards (body parts)', 'Robot song audio', 'Worksheet (label body parts)', 'Colored pencils', 'Word bank cards', 'Sentence frame strips'],
+        moralValues: ['Creativity', 'Cooperation', 'Respect for others\' work'],
+        cce: ['Language', 'Science & Technology', 'Creativity and Innovation'],
+      },
+      { unitNumber: 9, title: 'At the Beach', theme: 'World of Knowledge' },
+    ],
+    'Year 3': [
+      { unitNumber: 1, title: 'Welcome!', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 2, title: 'Every Day', theme: 'World of Knowledge' },
+      { unitNumber: 3, title: 'Right Now', theme: 'World of Knowledge' },
+      { unitNumber: 4, title: 'Our World', theme: 'World of Knowledge' },
+      {
+        unitNumber: 5, title: 'My New House', topic: 'My New House', theme: 'World of Knowledge',
+        contentStandards: [
+          { code: '1.3', description: 'Recognise and understand key information in spoken texts', skillArea: 'Listening' },
+          { code: '2.3', description: 'Speak with appropriate pronunciation, rhythm and intonation', skillArea: 'Speaking' },
+          { code: '3.3', description: 'Read and understand a variety of texts', skillArea: 'Reading' },
+          { code: '4.3', description: 'Write with guidance for different purposes', skillArea: 'Writing' },
+          { code: '5.3', description: 'Appreciate and respond to stories and poems', skillArea: 'Language Arts' },
+        ],
+        learningStandards: [
+          { code: '1.3.1', description: 'Listen to and understand key information in short spoken texts' },
+          { code: '2.3.1', description: 'Speak clearly with guidance' },
+          { code: '2.3.2', description: 'Express opinions about familiar topics' },
+          { code: '3.3.1', description: 'Read and understand simple paragraphs' },
+          { code: '3.3.2', description: 'Use context clues to understand word meanings' },
+          { code: '4.3.1', description: 'Write short simple texts with guidance' },
+          { code: '4.3.2', description: 'Use basic punctuation correctly' },
+          { code: '5.3.1', description: 'Respond to stories and poems creatively' },
+        ],
+        learningObjectives: [
+          'By the end of the lesson, pupils will be able to identify at least 5 out of 7 rooms in a house correctly.',
+          'Pupils will be able to describe furniture in a room using "There is / There are" with at least 3 correct sentences.',
+          'Pupils will be able to write 3 simple sentences about their dream house using prepositions of place.',
+        ],
+        successCriteria: [
+          'I can name 5 rooms in a house.',
+          'I can say "There is a bed in the bedroom."',
+          'I can write about my dream house.',
+        ],
+        songs: [{
+          title: 'My New House',
+          lyrics: '(Capo 1)\n\n[C]This is my house, my [G]new house\n[Am]Come inside and [F]look about\n[C]Living room, kitchen, [G]bathroom too\n[Am]My bedroom with a [F]view so new\n\n[C]In my house, in [G]my new house\n[Am]There is love and [F]there is joy\n[C]In my house, my [G]new house\n[Am]Welcome, welcome, [F]welcome home!\n\n[C]In the kitchen [G]there\'s a stove\n[Am]In the bedroom [F]blankets soft\n[C]In the bathroom [G]tub and shower\n[Am]In my house I [F]love to play!'
+        }],
+        modules: {
+          part1: {
+            title: 'Part 1: Listening & Vocabulary',
+            duration: 30,
+            segments: [
+              {
+                phase: 'Set Induction', duration: 5,
+                description: 'Sing "My New House" song with actions (Capo 1: C, G, Am, F).',
+                teacherRole: 'Facilitator \u2014 leads song with guitar/recording',
+                studentRole: 'Participant \u2014 sing and mime actions'
+              },
+              {
+                phase: 'Pre-lesson', duration: 5,
+                description: 'Room flashcards: Show pictures of rooms (bedroom, bathroom, kitchen, living room, dining room, study, garage, garden). Pupils chorally repeat.\n[Differentiated Process] Advanced: Say one item found in each room. Standard: Repeat room name and spell first letter. Low: Repeat room name with picture support.',
+                teacherRole: 'Instructor \u2014 shows flashcards and drills',
+                studentRole: 'Listener and repeater'
+              },
+              {
+                phase: 'Lesson Development', duration: 15,
+                description: 'Listen and match: Pupils listen to audio descriptions of each room and match furniture items to the correct room on a worksheet.\n[Differentiated Process] Advanced: Complete listening task without visuals. Standard: Match with picture support. Low: Cut and paste furniture into correct room.\n[Differentiated Product] Advanced: Write sentence "In the ___ there is a ___." Standard: Stick and label furniture. Low: Stick furniture into correct room.',
+                teacherRole: 'Facilitator \u2014 plays audio, provides support',
+                studentRole: 'Active learner \u2014 listen, match, label'
+              },
+              {
+                phase: 'Post-lesson', duration: 3,
+                description: "What's in the room? game: Show a room picture for 10 seconds, pupils recall what furniture they saw.\n[Differentiated Process] Advanced: Recall 5+ items. Standard: Recall 3 items. Low: Choose from picture options.",
+                teacherRole: 'Moderator \u2014 shows pictures and prompts recall',
+                studentRole: 'Participant \u2014 observe and recall'
+              },
+              {
+                phase: 'Closure', duration: 2,
+                description: 'Recap: "One room in my house is ___." Pupils complete the sentence.',
+                teacherRole: 'Facilitator \u2014 leads sentence completion',
+                studentRole: 'Reflector \u2014 complete sentence aloud'
+              }
+            ]
+          },
+          part2: {
+            title: 'Part 2: Speaking & Writing',
+            duration: 30,
+            segments: [
+              {
+                phase: 'Set Induction', duration: 5,
+                description: 'Review rooms with "In my house I have..." chant using room flashcards.',
+                teacherRole: 'Facilitator \u2014 leads chant',
+                studentRole: 'Participant \u2014 chant and point'
+              },
+              {
+                phase: 'Pre-lesson', duration: 5,
+                description: 'Prepositions input: Teach in, on, under, behind, next to using classroom objects.\n[Differentiated Process] Advanced: Give instructions using prepositions. Standard: Follow teacher\'s instructions. Low: Point to correct position with guidance.',
+                teacherRole: 'Instructor \u2014 demonstrates prepositions with objects',
+                studentRole: 'Listener \u2014 observe and respond'
+              },
+              {
+                phase: 'Lesson Development', duration: 15,
+                description: 'Describe and write: Pupils draw their dream bedroom and write 3 sentences describing where furniture is using prepositions (e.g. "The bed is next to the window.").\n[Differentiated Process] Advanced: Write 5 sentences independently with varied prepositions. Standard: Write 3 sentences using sentence frames. Low: Complete 2 sentences with word bank and picture cards.\n[Differentiated Product] Advanced: Present to class with detailed description. Standard: Present to partner. Low: Point and name furniture items.',
+                teacherRole: 'Facilitator \u2014 provides frames, circulates, scribes for low-readiness',
+                studentRole: 'Creator and writer \u2014 draw, write, describe'
+              },
+              {
+                phase: 'Post-lesson', duration: 3,
+                description: 'Pair share: Pupils show their drawing and read their sentences to a partner.\n[Differentiated Process] Advanced: Ask partner one question about their room. Standard: Listen and give one compliment. Low: Point to furniture as partner names it.',
+                teacherRole: 'Moderator \u2014 pairs pupils and monitors',
+                studentRole: 'Presenter and listener \u2014 share and respond'
+              },
+              {
+                phase: 'Closure', duration: 2,
+                description: 'Exit ticket: "My favourite room is ___ because ___."',
+                teacherRole: 'Facilitator \u2014 collects exit tickets',
+                studentRole: 'Reflector \u2014 complete exit ticket'
+              }
+            ]
+          }
+        },
+        teachingAids: ['Room flashcards', 'Furniture picture cards', 'Preposition flashcards', 'Dream bedroom worksheet', 'Sentence frame strips', 'Colored pencils'],
+        moralValues: ['Appreciation of home', 'Responsibility', 'Creativity'],
+        cce: ['Language', 'Creativity and Innovation', 'Values'],
+      },
+      { unitNumber: 6, title: 'Food, Please!', theme: 'World of Knowledge' },
+      { unitNumber: 7, title: 'Out and About', theme: 'World of Knowledge' },
+      { unitNumber: 8, title: 'Where Were You Yesterday?', theme: 'World of Stories' },
+      { unitNumber: 9, title: 'On Holiday', theme: 'World of Knowledge' },
+      { unitNumber: 10, title: "Let's Go!", theme: 'World of Self, Family and Friends' },
+    ],
+    'Year 4': [
+      { unitNumber: 1, title: 'Where Are You From?', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 2, title: 'My Week', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 3, title: 'In the Past', theme: 'World of Knowledge' },
+      { unitNumber: 4, title: 'Celebrations', theme: 'World of Knowledge' },
+      { unitNumber: 5, title: 'Eating Right', theme: 'World of Knowledge' },
+      { unitNumber: 6, title: 'Getting Around', theme: 'World of Knowledge' },
+      { unitNumber: 7, title: "Helpful People & Places", theme: 'World of Self, Family and Friends' },
+      { unitNumber: 8, title: 'Amazing Animals', theme: 'World of Knowledge' },
+      { unitNumber: 9, title: 'Top Stars', theme: 'World of Knowledge' },
+      { unitNumber: 10, title: "What's the Matter?", theme: 'World of Knowledge' },
+    ],
+    'Year 5': [
+      { unitNumber: 1, title: "There's a Girl in My Class", theme: 'World of Self, Family and Friends' },
+      { unitNumber: 2, title: 'Days', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 3, title: 'Wild Life', theme: 'World of Knowledge' },
+      { unitNumber: 4, title: 'Learning World', theme: 'World of Knowledge' },
+      { unitNumber: 5, title: 'Eat and Drink', theme: 'World of Knowledge' },
+      { unitNumber: 6, title: 'Sport', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 7, title: 'Growing Up', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 8, title: 'Going Away', theme: 'World of Knowledge' },
+    ],
+    'Year 6': [
+      { unitNumber: 1, title: "Welcome to Our School!", theme: 'World of Self, Family and Friends' },
+      { unitNumber: 2, title: 'Appearances', theme: 'World of Knowledge' },
+      { unitNumber: 3, title: 'Heroes', theme: 'World of Self, Family and Friends' },
+      { unitNumber: 4, title: 'Cool Jobs', theme: 'World of Knowledge' },
+      { unitNumber: 5, title: 'Around the World in One Day', theme: 'World of Knowledge' },
+      { unitNumber: 6, title: 'Getting There', theme: 'World of Knowledge' },
+      { unitNumber: 7, title: 'Myths and Legends', theme: 'World of Stories' },
+      { unitNumber: 8, title: 'Tell Me a Story', theme: 'World of Stories' },
+      { unitNumber: 9, title: 'What...If?', theme: 'World of Knowledge' },
+      { unitNumber: 10, title: "It's a Mystery", theme: 'World of Knowledge' },
+    ],
+  },
+}
+</script>
+</body>
+</html>
