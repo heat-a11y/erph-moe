@@ -20,7 +20,7 @@ import { useState } from "react"
 const navItems = [
   {
     title: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -30,12 +30,10 @@ const navItems = [
   },
   {
     title: "Lesson Plans",
-    href: "/lesson-plans",
+    href: "/dashboard",
     icon: BookOpen,
     children: [
-      { title: "Daily", href: "/lesson-plans" },
-      { title: "Weekly", href: "/lesson-plans/weekly" },
-      { title: "Monthly", href: "/lesson-plans/monthly" },
+      { title: "All Plans", href: "/dashboard" },
     ],
   },
   {
@@ -95,11 +93,7 @@ export function Sidebar() {
                     </div>
                     <div className="ml-4 mt-1 flex flex-col gap-0.5">
                       {item.children.map((child) => {
-                        const isChildActive =
-                          child.href === "/lesson-plans"
-                            ? pathname === "/lesson-plans" ||
-                              pathname === "/lesson-plans/daily"
-                            : pathname === child.href
+                        const isChildActive = pathname === child.href
 
                         return (
                           <Link

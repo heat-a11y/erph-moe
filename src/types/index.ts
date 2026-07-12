@@ -82,6 +82,7 @@ export type TimetableSlot = {
   id: string
   day: DayOfWeek
   period: number
+  part?: 1 | 2
   startTime: string
   endTime: string
   yearGroup: YearGroup
