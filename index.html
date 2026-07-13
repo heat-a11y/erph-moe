@@ -1202,12 +1202,6 @@ document.addEventListener('alpine:init', () => {
       localStorage.setItem('malp_donation_dismissed', '1')
     },
 
-    exportAllPlans() {
-      const text = this.lessonPlans.map(p => {
-        return `${p.title}\n${p.date} | ${p.yearGroup}\n${p.learningObjectives.join('; ')}\n---`
-      }).join('\n\n')
-      navigator.clipboard.writeText(text || 'No plans')
-    },
   }))
 })
 
