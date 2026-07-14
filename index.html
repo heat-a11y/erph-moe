@@ -904,8 +904,8 @@ document.addEventListener('alpine:init', () => {
       const fmt = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
       const plans = []
 
-      Object.keys(this.slotsByDay).forEach(day => {
-        const slots = this.slotsByDay[day]
+      this.days.forEach(day => {
+        const slots = this.slotsByDay[day] || []
         const slotDate = this.dateForDay(day, range.mon)
         const dateStr = fmt(slotDate)
 
@@ -971,11 +971,6 @@ document.addEventListener('alpine:init', () => {
           plans.push(plan)
         })
       })
-
-      // Shuffle plan order for variety
-      for (let i = plans.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1)); [plans[i], plans[j]] = [plans[j], plans[i]]
-      }
       this.lessonPlans = [...plans, ...this.lessonPlans]
       setTimeout(() => { this.lessonPlans = this.lessonPlans.map(p => ({ ...p, _animating: false })) }, 600)
       setTimeout(() => { this.generating = false }, 400)
@@ -1019,8 +1014,8 @@ document.addEventListener('alpine:init', () => {
       const counters = {}
       yearGroupsOrdered.forEach(yg => { counters[yg] = 0 })
 
-      Object.keys(this.slotsByDay).forEach(day => {
-        const slots = this.slotsByDay[day]
+      this.days.forEach(day => {
+        const slots = this.slotsByDay[day] || []
         const slotDate = this.dateForDay(day, range.mon)
         const dateStr = fmt(slotDate)
 
@@ -1083,10 +1078,6 @@ document.addEventListener('alpine:init', () => {
           plans.push(plan)
         })
       })
-
-      for (let i = plans.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1)); [plans[i], plans[j]] = [plans[j], plans[i]]
-      }
       this.lessonPlans = [...plans, ...this.lessonPlans]
       setTimeout(() => { this.lessonPlans = this.lessonPlans.map(p => ({ ...p, _animating: false })) }, 600)
       setTimeout(() => { this.generating = false }, 400)
