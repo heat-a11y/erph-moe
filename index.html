@@ -1157,8 +1157,18 @@ document.addEventListener('alpine:init', () => {
 
     exportAllPDF() {
       if (!this.lessonPlans.length) return
-      const pages = this.lessonPlans.map((p, i) =>
-        '<div style="' + (i < this.lessonPlans.length - 1 ? 'page-break-after:always;' : '') + 'page-break-inside:avoid">' + this.buildPDFHtml(p) + '</div>'
+      const dayOrder = { Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4, Saturday: 5, Sunday: 6 }
+      const sorted = [...this.lessonPlans].sort((a, b) => {
+        const da = dayOrder[a.daySlot] ?? 99, db = dayOrder[b.daySlot] ?? 99
+        if (da !== db) return da - db
+        const ta = (a.slotTime || '').split('\u2013')[0] || '', tb = (b.slotTime || '').split('\u2013')[0] || ''
+        if (ta !== tb) return ta < tb ? -1 : 1
+        const ya = parseInt(a.yearGroup?.replace('Year ', '')) || 0
+        const yb = parseInt(b.yearGroup?.replace('Year ', '')) || 0
+        return ya - yb
+      })
+      const pages = sorted.map((p, i) =>
+        '<div style="' + (i < sorted.length - 1 ? 'page-break-after:always;' : '') + 'page-break-inside:avoid">' + this.buildPDFHtml(p) + '</div>'
       ).join('')
       this.openPDFWindow(pages, 'MALP_All_Lesson_Plans.pdf')
     },
