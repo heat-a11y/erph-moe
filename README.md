@@ -2,41 +2,29 @@
 
 A fully client-side, zero-dependency web app for Malaysian primary school English teachers to plan, organise, and generate lesson plans — deployable on GitHub Pages in 60 seconds.
 
-## Features
+## ✨ Features
 
-- **My Timetable** — Interactive weekly grid (Mon–Fri, Periods 1–8). Click any cell to add/edit a class slot. Pre-populated with a sample timetable for Years 1–6.
-- **Generate Lesson Plans** — Select a week and a curriculum unit, then click one button. The engine reads your active timetable, cross-references the Curriculum Database, splits lessons into Part 1 / Part 2, and renders beautiful, expandable preview cards.
-- **Curriculum Database** — Browse DSKP-aligned content standards, learning standards, learning objectives, theme songs (with guitar chords), and full lesson modules for Years 1–6.
-- **Export & Print** — Copy any lesson plan to your clipboard as clean text, or print / save to PDF with a professional, print-optimised layout. Editable Teacher's Reflection fields on every plan card.
-- **100 % client-side** — No server, no API, no build step. All data is persisted to `localStorage`.
+- **Interactive Timetable** — Click any cell to add/edit class slots for Year 1–6, with period and time management
+- **Smart Lesson Plan Generator** — Auto-generate plans from your timetable with DSKP-aligned content (Content Standards, Learning Standards, Objectives, Activities)
+- **Curriculum Database** — Built-in DSKP curriculum for Years 1–6 with units, songs, teaching aids, and moral values
+- **Rekod Transit (Penguasaan)** — Track student mastery levels (TP1–TP6) for Listening, Speaking, Reading, and Writing
+- **Reflection Manager** — Write, save, and manage teacher reflections for every lesson
+- **PDF Export** — Download individual or bulk lesson plans as PDF
+- **Local Storage** — All data stays in your browser — no server, no login
 
-## Textbook Mapping
+## 🚀 Quick Start
 
-| Year | Textbook |
-|------|----------|
-| Year 1 | Superminds 1 |
-| Year 2 | Superminds 2 |
-| Year 3 | Get Smart 3 |
-| Year 4 | Get Smart Plus 4 |
-| Year 5 | English Plus 1 |
-| Year 6 | Academy Stars |
+1. Open `index.html` in any modern browser
+2. Click a timetable cell to add your class slots
+3. Select a week and click **Generate Lesson Plans**
+4. Edit, reflect, and export
 
-## Deploy to GitHub Pages
+No installation. No build step. No backend.
 
-1. Push this repository to GitHub.
-2. Go to **Settings → Pages**.
-3. Under **Branch**, select `main` and `/ (root)`, then click **Save**.
-4. Wait ~30 seconds, then visit `https://<your-username>.github.io/<repo-name>/`.
+## 🛠️ Tech Stack
 
-No build commands, no configuration files, no frameworks.
+HTML · Tailwind CSS · Alpine.js · html2pdf.js
 
-## Tech Stack
-
-- Single `index.html` file
-- [Tailwind CSS](https://tailwindcss.com/) via CDN
-- [Alpine.js](https://alpinejs.dev/) v3 with collapse plugin
-- All data stored in browser `localStorage`
-
-## License
+## 📄 License
 
 MIT
