@@ -514,6 +514,10 @@
                     <button @click.stop="plan._rekodOpen = !plan._rekodOpen" class="rounded px-2 py-0.5 text-[10px] font-medium text-indigo-600 hover:bg-indigo-50" x-text="plan._rekodOpen ? 'Hide' : 'Show'"></button>
                   </div>
                   <div x-show="plan._rekodOpen" x-collapse class="overflow-x-auto rounded-lg border bg-white text-xs">
+                    <div class="flex items-center justify-end gap-1 border-b bg-slate-50 px-2 py-1">
+                      <span class="mr-auto text-[10px] text-slate-400" x-text="plan.rekodTransit.students.length + ' pupils'"></span>
+                      <button @click.stop="addRekodStudentToPlan(plan)" class="rounded px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 hover:bg-indigo-50">+ Add</button>
+                    </div>
                     <table class="w-full min-w-[400px]">
                       <thead>
                         <tr class="border-b bg-slate-50">
@@ -524,37 +528,47 @@
                           <th class="px-2 py-1.5 text-center font-semibold text-slate-500" title="Reading">R</th>
                           <th class="px-2 py-1.5 text-center font-semibold text-slate-500" title="Writing">W</th>
                           <th class="px-2 py-1.5 text-center font-semibold text-slate-500" title="Overall">O</th>
+                          <th class="px-2 py-1.5 text-center font-semibold text-slate-500"></th>
                         </tr>
                       </thead>
                       <tbody>
                         <template x-for="(s, si) in plan.rekodTransit.students" :key="si">
                           <tr class="border-b last:border-0 hover:bg-slate-50">
-                            <td class="px-2 py-1 text-slate-400" x-text="s.bil"></td>
-                            <td class="px-2 py-1 font-medium text-slate-700" x-text="s.name"></td>
+                            <td class="px-2 py-1">
+                              <input type="number" min="1" x-model="s.bil" class="w-7 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] text-slate-400 focus:border-indigo-400 focus:outline-none" />
+                            </td>
+                            <td class="px-2 py-1">
+                              <input x-model="s.name" class="w-full min-w-[100px] rounded border border-slate-200 bg-white px-1 py-0 text-[10px] font-medium text-slate-700 placeholder-slate-300 focus:border-indigo-400 focus:outline-none" />
+                            </td>
                             <td class="px-2 py-1 text-center">
-                              <select x-model="s.listening" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
+                              <select x-model="s.listening" class="w-7 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
                                 <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
                               </select>
                             </td>
                             <td class="px-2 py-1 text-center">
-                              <select x-model="s.speaking" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
+                              <select x-model="s.speaking" class="w-7 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
                                 <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
                               </select>
                             </td>
                             <td class="px-2 py-1 text-center">
-                              <select x-model="s.reading" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
+                              <select x-model="s.reading" class="w-7 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
                                 <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
                               </select>
                             </td>
                             <td class="px-2 py-1 text-center">
-                              <select x-model="s.writing" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
+                              <select x-model="s.writing" class="w-7 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
                                 <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
                               </select>
                             </td>
                             <td class="px-2 py-1 text-center">
-                              <select x-model="s.overall" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] font-bold focus:border-indigo-400 focus:outline-none">
+                              <select x-model="s.overall" class="w-7 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] font-bold focus:border-indigo-400 focus:outline-none">
                                 <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
                               </select>
+                            </td>
+                            <td class="px-2 py-1 text-center">
+                              <button @click.stop="deleteRekodStudentFromPlan(plan, si)" class="rounded p-0.5 text-slate-300 hover:text-red-500" title="Remove student">
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                              </button>
                             </td>
                           </tr>
                         </template>
@@ -809,71 +823,85 @@
         </div>
 
         <!-- Rekod Transit table (editable) -->
-        <div x-show="rekodForYear(reflectionYear).students.length" class="mb-6 overflow-x-auto rounded-xl border bg-white shadow-sm">
+         <div x-show="rekodForYear(reflectionYear).students.length" class="mb-6 overflow-x-auto rounded-xl border bg-white shadow-sm">
           <div class="flex items-center justify-between border-b bg-slate-50 px-3 py-2">
             <p class="text-xs font-medium text-slate-500">
               <span x-text="rekodForYear(reflectionYear).students.length"></span> students
-              <span class="ml-2 text-[10px] text-slate-400">(click TP values to edit)</span>
             </p>
-            <button @click="saveRekodData()" class="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700">
-              <span>&#x1F4BE;</span> Save Changes
-            </button>
+            <div class="flex gap-2">
+              <button @click="addRekodStudent(reflectionYear)" class="inline-flex items-center gap-1 rounded-lg border bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50">
+                <span class="text-base leading-none">+</span> Add Student
+              </button>
+              <button @click="saveRekodData()" class="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700">
+                <span>&#x1F4BE;</span> Save Changes
+              </button>
+            </div>
           </div>
-          <table class="w-full min-w-[600px] text-xs">
+          <table class="w-full min-w-[700px] text-xs">
             <thead>
               <tr class="border-b bg-slate-50">
-                <th class="px-3 py-2 text-left font-semibold text-slate-500">#</th>
-                <th class="px-3 py-2 text-left font-semibold text-slate-500">Name</th>
-                <th class="px-3 py-2 text-center font-semibold text-slate-500">Listening</th>
-                <th class="px-3 py-2 text-center font-semibold text-slate-500">Speaking</th>
-                <th class="px-3 py-2 text-center font-semibold text-slate-500">Reading</th>
-                <th class="px-3 py-2 text-center font-semibold text-slate-500">Writing</th>
-                <th class="px-3 py-2 text-center font-semibold text-slate-500">Overall</th>
-                <th class="px-3 py-2 text-left font-semibold text-slate-500">Intervention</th>
+                <th class="px-2 py-2 text-left font-semibold text-slate-500">#</th>
+                <th class="px-2 py-2 text-left font-semibold text-slate-500">Name</th>
+                <th class="px-2 py-2 text-center font-semibold text-slate-500">Listening</th>
+                <th class="px-2 py-2 text-center font-semibold text-slate-500">Speaking</th>
+                <th class="px-2 py-2 text-center font-semibold text-slate-500">Reading</th>
+                <th class="px-2 py-2 text-center font-semibold text-slate-500">Writing</th>
+                <th class="px-2 py-2 text-center font-semibold text-slate-500">Overall</th>
+                <th class="px-2 py-2 text-left font-semibold text-slate-500">Intervention</th>
+                <th class="px-2 py-2 text-center font-semibold text-slate-500"></th>
               </tr>
             </thead>
             <tbody>
               <template x-for="(s, si) in rekodForYear(reflectionYear).students" :key="si">
                 <tr class="border-b last:border-0 hover:bg-slate-50">
-                  <td class="px-3 py-2 text-slate-400" x-text="s.bil"></td>
-                  <td class="px-3 py-2 font-medium text-slate-700" x-text="s.name"></td>
-                  <td class="px-3 py-2 text-center">
-                    <select x-model="s.listening" @change="updateRekodTP(reflectionYear, si, 'listening', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
+                  <td class="px-2 py-1.5">
+                    <input type="number" min="1" x-model="s.bil" @input="renumberRekod(reflectionYear)" class="w-8 rounded border border-slate-200 bg-white px-1 py-0.5 text-center text-[11px] text-slate-500 focus:border-indigo-400 focus:outline-none" />
+                  </td>
+                  <td class="px-2 py-1.5">
+                    <input x-model="s.name" placeholder="Student name" class="w-full min-w-[120px] rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-slate-700 placeholder-slate-300 focus:border-indigo-400 focus:outline-none" />
+                  </td>
+                  <td class="px-2 py-1.5 text-center">
+                    <select x-model="s.listening" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
                       <template x-for="tp in 6" :key="tp">
-                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.listening === tp"></option>
+                        <option x-bind:value="tp" x-text="tp"></option>
                       </template>
                     </select>
                   </td>
-                  <td class="px-3 py-2 text-center">
-                    <select x-model="s.speaking" @change="updateRekodTP(reflectionYear, si, 'speaking', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
+                  <td class="px-2 py-1.5 text-center">
+                    <select x-model="s.speaking" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
                       <template x-for="tp in 6" :key="tp">
-                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.speaking === tp"></option>
+                        <option x-bind:value="tp" x-text="tp"></option>
                       </template>
                     </select>
                   </td>
-                  <td class="px-3 py-2 text-center">
-                    <select x-model="s.reading" @change="updateRekodTP(reflectionYear, si, 'reading', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
+                  <td class="px-2 py-1.5 text-center">
+                    <select x-model="s.reading" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
                       <template x-for="tp in 6" :key="tp">
-                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.reading === tp"></option>
+                        <option x-bind:value="tp" x-text="tp"></option>
                       </template>
                     </select>
                   </td>
-                  <td class="px-3 py-2 text-center">
-                    <select x-model="s.writing" @change="updateRekodTP(reflectionYear, si, 'writing', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
+                  <td class="px-2 py-1.5 text-center">
+                    <select x-model="s.writing" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
                       <template x-for="tp in 6" :key="tp">
-                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.writing === tp"></option>
+                        <option x-bind:value="tp" x-text="tp"></option>
                       </template>
                     </select>
                   </td>
-                  <td class="px-3 py-2 text-center">
-                    <select x-model="s.overall" @change="updateRekodTP(reflectionYear, si, 'overall', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] font-bold focus:border-indigo-400 focus:outline-none">
+                  <td class="px-2 py-1.5 text-center">
+                    <select x-model="s.overall" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] font-bold focus:border-indigo-400 focus:outline-none">
                       <template x-for="tp in 6" :key="tp">
-                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.overall === tp"></option>
+                        <option x-bind:value="tp" x-text="tp"></option>
                       </template>
                     </select>
                   </td>
-                  <td class="px-3 py-2">
-                    <input x-model="s.intervention" @input="updateRekodIntervention(reflectionYear, si, $event.target.value)" placeholder="—" class="w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-amber-700 placeholder-slate-300 focus:border-indigo-400 focus:outline-none" />
+                  <td class="px-2 py-1.5">
+                    <input x-model="s.intervention" placeholder="—" class="w-full min-w-[100px] rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-amber-700 placeholder-slate-300 focus:border-indigo-400 focus:outline-none" />
+                  </td>
+                  <td class="px-2 py-1.5 text-center">
+                    <button @click="deleteRekodStudent(reflectionYear, si)" class="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500" title="Delete student">
+                      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                    </button>
                   </td>
                 </tr>
               </template>
@@ -1484,6 +1512,68 @@ document.addEventListener('alpine:init', () => {
       if (this.rekodTransitData && this.rekodTransitData[year] && this.rekodTransitData[year].students[studentIdx]) {
         this.rekodTransitData[year].students[studentIdx].intervention = value
       }
+    },
+
+    updateRekodName(year, studentIdx, value) {
+      if (this.rekodTransitData && this.rekodTransitData[year] && this.rekodTransitData[year].students[studentIdx]) {
+        this.rekodTransitData[year].students[studentIdx].name = value
+      }
+    },
+
+    updateRekodBil(year, studentIdx, value) {
+      if (this.rekodTransitData && this.rekodTransitData[year] && this.rekodTransitData[year].students[studentIdx]) {
+        this.rekodTransitData[year].students[studentIdx].bil = parseInt(value) || 1
+      }
+    },
+
+    renumberRekod(year) {
+      const data = this.rekodTransitData && this.rekodTransitData[year]
+      if (!data) return
+      data.students.forEach((s, i) => { s.bil = i + 1 })
+    },
+
+    addRekodStudent(year) {
+      if (!this.rekodTransitData) this.rekodTransitData = JSON.parse(JSON.stringify(REKOD_TRANSIT))
+      if (!this.rekodTransitData[year]) {
+        this.rekodTransitData[year] = { schoolType: 'SJK(C/T)', students: [] }
+      }
+      this.rekodTransitData[year].students.push({
+        bil: this.rekodTransitData[year].students.length + 1,
+        name: 'New Student',
+        listening: 3,
+        speaking: 3,
+        reading: 3,
+        writing: 3,
+        overall: 3,
+        intervention: '',
+      })
+    },
+
+    deleteRekodStudent(year, studentIdx) {
+      if (!this.rekodTransitData || !this.rekodTransitData[year]) return
+      if (!confirm('Delete this student record?')) return
+      this.rekodTransitData[year].students.splice(studentIdx, 1)
+      this.renumberRekod(year)
+    },
+
+    addRekodStudentToPlan(plan) {
+      if (!plan.rekodTransit) {
+        plan.rekodTransit = { schoolType: 'SJK(C/T)', students: [] }
+      }
+      const students = plan.rekodTransit.students
+      students.push({
+        bil: students.length + 1,
+        name: 'New Student',
+        listening: 3, speaking: 3, reading: 3, writing: 3, overall: 3,
+        intervention: '',
+      })
+    },
+
+    deleteRekodStudentFromPlan(plan, studentIdx) {
+      if (!plan.rekodTransit || !plan.rekodTransit.students) return
+      if (!confirm('Remove this student from the list?')) return
+      plan.rekodTransit.students.splice(studentIdx, 1)
+      plan.rekodTransit.students.forEach((s, i) => { s.bil = i + 1 })
     },
 
     generatePerformanceLevel(plan) {
