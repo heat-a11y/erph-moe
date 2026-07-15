@@ -531,11 +531,31 @@
                           <tr class="border-b last:border-0 hover:bg-slate-50">
                             <td class="px-2 py-1 text-slate-400" x-text="s.bil"></td>
                             <td class="px-2 py-1 font-medium text-slate-700" x-text="s.name"></td>
-                            <td class="px-2 py-1 text-center"><span class="inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" x-bind:class="TP_BADGES[s.listening] || 'bg-slate-100'" x-text="s.listening"></span></td>
-                            <td class="px-2 py-1 text-center"><span class="inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" x-bind:class="TP_BADGES[s.speaking] || 'bg-slate-100'" x-text="s.speaking"></span></td>
-                            <td class="px-2 py-1 text-center"><span class="inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" x-bind:class="TP_BADGES[s.reading] || 'bg-slate-100'" x-text="s.reading"></span></td>
-                            <td class="px-2 py-1 text-center"><span class="inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" x-bind:class="TP_BADGES[s.writing] || 'bg-slate-100'" x-text="s.writing"></span></td>
-                            <td class="px-2 py-1 text-center"><span class="inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" x-bind:class="TP_BADGES[s.overall] || 'bg-slate-100'" x-text="s.overall"></span></td>
+                            <td class="px-2 py-1 text-center">
+                              <select x-model="s.listening" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
+                                <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
+                              </select>
+                            </td>
+                            <td class="px-2 py-1 text-center">
+                              <select x-model="s.speaking" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
+                                <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
+                              </select>
+                            </td>
+                            <td class="px-2 py-1 text-center">
+                              <select x-model="s.reading" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
+                                <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
+                              </select>
+                            </td>
+                            <td class="px-2 py-1 text-center">
+                              <select x-model="s.writing" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] focus:border-indigo-400 focus:outline-none">
+                                <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
+                              </select>
+                            </td>
+                            <td class="px-2 py-1 text-center">
+                              <select x-model="s.overall" class="w-8 rounded border border-slate-200 bg-white px-0.5 py-0 text-center text-[10px] font-bold focus:border-indigo-400 focus:outline-none">
+                                <template x-for="tp in 6" :key="tp"><option x-bind:value="tp" x-text="tp"></option></template>
+                              </select>
+                            </td>
                           </tr>
                         </template>
                       </tbody>
@@ -788,8 +808,17 @@
           </div>
         </div>
 
-        <!-- Rekod Transit table -->
+        <!-- Rekod Transit table (editable) -->
         <div x-show="rekodForYear(reflectionYear).students.length" class="mb-6 overflow-x-auto rounded-xl border bg-white shadow-sm">
+          <div class="flex items-center justify-between border-b bg-slate-50 px-3 py-2">
+            <p class="text-xs font-medium text-slate-500">
+              <span x-text="rekodForYear(reflectionYear).students.length"></span> students
+              <span class="ml-2 text-[10px] text-slate-400">(click TP values to edit)</span>
+            </p>
+            <button @click="saveRekodData()" class="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700">
+              <span>&#x1F4BE;</span> Save Changes
+            </button>
+          </div>
           <table class="w-full min-w-[600px] text-xs">
             <thead>
               <tr class="border-b bg-slate-50">
@@ -808,12 +837,44 @@
                 <tr class="border-b last:border-0 hover:bg-slate-50">
                   <td class="px-3 py-2 text-slate-400" x-text="s.bil"></td>
                   <td class="px-3 py-2 font-medium text-slate-700" x-text="s.name"></td>
-                  <td class="px-3 py-2 text-center"><span class="inline-flex h-6 w-6 items-center justify-center rounded text-[11px] font-bold" x-bind:class="TP_BADGES[s.listening] || 'bg-slate-100'" x-text="s.listening"></span></td>
-                  <td class="px-3 py-2 text-center"><span class="inline-flex h-6 w-6 items-center justify-center rounded text-[11px] font-bold" x-bind:class="TP_BADGES[s.speaking] || 'bg-slate-100'" x-text="s.speaking"></span></td>
-                  <td class="px-3 py-2 text-center"><span class="inline-flex h-6 w-6 items-center justify-center rounded text-[11px] font-bold" x-bind:class="TP_BADGES[s.reading] || 'bg-slate-100'" x-text="s.reading"></span></td>
-                  <td class="px-3 py-2 text-center"><span class="inline-flex h-6 w-6 items-center justify-center rounded text-[11px] font-bold" x-bind:class="TP_BADGES[s.writing] || 'bg-slate-100'" x-text="s.writing"></span></td>
-                  <td class="px-3 py-2 text-center"><span class="inline-flex h-6 w-6 items-center justify-center rounded text-[11px] font-bold" x-bind:class="TP_BADGES[s.overall] || 'bg-slate-100'" x-text="s.overall"></span></td>
-                  <td class="px-3 py-2 text-[10px] text-amber-700" x-text="s.intervention || '—'"></td>
+                  <td class="px-3 py-2 text-center">
+                    <select x-model="s.listening" @change="updateRekodTP(reflectionYear, si, 'listening', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
+                      <template x-for="tp in 6" :key="tp">
+                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.listening === tp"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td class="px-3 py-2 text-center">
+                    <select x-model="s.speaking" @change="updateRekodTP(reflectionYear, si, 'speaking', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
+                      <template x-for="tp in 6" :key="tp">
+                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.speaking === tp"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td class="px-3 py-2 text-center">
+                    <select x-model="s.reading" @change="updateRekodTP(reflectionYear, si, 'reading', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
+                      <template x-for="tp in 6" :key="tp">
+                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.reading === tp"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td class="px-3 py-2 text-center">
+                    <select x-model="s.writing" @change="updateRekodTP(reflectionYear, si, 'writing', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] focus:border-indigo-400 focus:outline-none">
+                      <template x-for="tp in 6" :key="tp">
+                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.writing === tp"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td class="px-3 py-2 text-center">
+                    <select x-model="s.overall" @change="updateRekodTP(reflectionYear, si, 'overall', $event.target.value)" class="w-10 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-[11px] font-bold focus:border-indigo-400 focus:outline-none">
+                      <template x-for="tp in 6" :key="tp">
+                        <option x-bind:value="tp" x-text="tp" x-bind:selected="s.overall === tp"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td class="px-3 py-2">
+                    <input x-model="s.intervention" @input="updateRekodIntervention(reflectionYear, si, $event.target.value)" placeholder="—" class="w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] text-amber-700 placeholder-slate-300 focus:border-indigo-400 focus:outline-none" />
+                  </td>
                 </tr>
               </template>
             </tbody>
@@ -866,6 +927,7 @@ document.addEventListener('alpine:init', () => {
     lessonPlans: [],
     curriculumYear: 'Year 3',
     reflectionYear: 'Year 1',
+    rekodTransitData: null,
     weekOffset: 0,
     genWeekOffset: 0,
 
@@ -923,9 +985,11 @@ document.addEventListener('alpine:init', () => {
     // ── Init ──
     init() {
       this.loadState()
+      this.initRekodData()
       this.$watch('activeTab', val => localStorage.setItem('malp_tab', val))
       this.$watch('timetable', val => this.persist(), { deep: true })
       this.$watch('lessonPlans', val => this.persist(), { deep: true })
+      this.$watch('rekodTransitData', val => this.persist(), { deep: true })
       this.$watch('form.yearGroup', () => { this.form.unit = '' })
     },
 
@@ -967,6 +1031,7 @@ document.addEventListener('alpine:init', () => {
           if (d.lessonPlans) this.lessonPlans = d.lessonPlans
           if (d.curriculumYear) this.curriculumYear = d.curriculumYear
           if (d.reflectionYear) this.reflectionYear = d.reflectionYear
+          if (d.rekodTransitData) this.rekodTransitData = d.rekodTransitData
           if (d.form) this.form = d.form
           if (d.genWeekOffset != null) this.genWeekOffset = d.genWeekOffset
           if (d.weekOffset != null) this.weekOffset = d.weekOffset
@@ -988,6 +1053,7 @@ document.addEventListener('alpine:init', () => {
           lessonPlans: this.lessonPlans,
           curriculumYear: this.curriculumYear,
           reflectionYear: this.reflectionYear,
+          rekodTransitData: this.rekodTransitData,
           form: this.form,
           genWeekOffset: this.genWeekOffset,
           weekOffset: this.weekOffset,
@@ -1388,11 +1454,36 @@ document.addEventListener('alpine:init', () => {
 
     // ── Rekod Transit functions ──
     rekodForYear(yearGroup) {
+      if (this.rekodTransitData && this.rekodTransitData[yearGroup]) {
+        return this.rekodTransitData[yearGroup]
+      }
       return REKOD_TRANSIT[yearGroup] || { schoolType: '', students: [] }
     },
 
     get rekodTransitYears() {
       return Object.keys(REKOD_TRANSIT)
+    },
+
+    initRekodData() {
+      if (!this.rekodTransitData) {
+        this.rekodTransitData = JSON.parse(JSON.stringify(REKOD_TRANSIT))
+      }
+    },
+
+    saveRekodData() {
+      this.persist()
+    },
+
+    updateRekodTP(year, studentIdx, skill, value) {
+      if (this.rekodTransitData && this.rekodTransitData[year] && this.rekodTransitData[year].students[studentIdx]) {
+        this.rekodTransitData[year].students[studentIdx][skill] = parseInt(value) || 1
+      }
+    },
+
+    updateRekodIntervention(year, studentIdx, value) {
+      if (this.rekodTransitData && this.rekodTransitData[year] && this.rekodTransitData[year].students[studentIdx]) {
+        this.rekodTransitData[year].students[studentIdx].intervention = value
+      }
     },
 
     generatePerformanceLevel(plan) {
@@ -1424,10 +1515,9 @@ document.addEventListener('alpine:init', () => {
     },
 
     attachRekodAll() {
+      this.initRekodData()
       this.lessonPlans.forEach(p => {
-        if (!p.rekodTransit || !p.rekodTransit.students?.length) {
-          p.rekodTransit = JSON.parse(JSON.stringify(this.rekodForYear(p.yearGroup)))
-        }
+        p.rekodTransit = JSON.parse(JSON.stringify(this.rekodForYear(p.yearGroup)))
       })
     },
 
