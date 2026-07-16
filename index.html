@@ -1418,15 +1418,17 @@ document.addEventListener('alpine:init', () => {
             _open: true,
             _animating: true,
             remedialInstruction: (() => {
-              const names = this.remedialStudentsForYear(slot.yearGroup)
-              if (!names.length) return null
+              const info = this.remedialInfoForYear(slot.yearGroup)
+              if (!info) return null
               const picked = this.pickRemedialActivities(slot.yearGroup, 3)
+              if (!picked.length) return null
               return {
-                students: names,
+                students: info.students,
+                hasNamed: info.hasNamed,
                 activities: picked.map(a => ({
                   id: a.id,
                   title: a.title,
-                  description: this.renderRemedialActivityDesc(a.description, slot.yearGroup),
+                  description: this.renderRemedialActivityDesc(a.description, slot.yearGroup, info.hasNamed),
                   strategies: a.strategies,
                   materials: a.materials,
                   focus: a.focus,
@@ -1545,15 +1547,17 @@ document.addEventListener('alpine:init', () => {
             _open: true,
             _animating: true,
             remedialInstruction: (() => {
-              const names = this.remedialStudentsForYear(slot.yearGroup)
-              if (!names.length) return null
+              const info = this.remedialInfoForYear(slot.yearGroup)
+              if (!info) return null
               const picked = this.pickRemedialActivities(slot.yearGroup, 3)
+              if (!picked.length) return null
               return {
-                students: names,
+                students: info.students,
+                hasNamed: info.hasNamed,
                 activities: picked.map(a => ({
                   id: a.id,
                   title: a.title,
-                  description: this.renderRemedialActivityDesc(a.description, slot.yearGroup),
+                  description: this.renderRemedialActivityDesc(a.description, slot.yearGroup, info.hasNamed),
                   strategies: a.strategies,
                   materials: a.materials,
                   focus: a.focus,
@@ -1583,9 +1587,11 @@ document.addEventListener('alpine:init', () => {
     },
 
     // ── Remedial Instruction (RI) helpers ──
-    remedialStudentsForYear(yearGroup) {
+    remedialInfoForYear(yearGroup) {
       const yearNum = parseInt(yearGroup?.replace('Year ', '')) || 0
-      return remedialStudentsRegistry[yearNum] || []
+      const entry = remedialStudentsRegistry[yearNum]
+      if (!entry) return null
+      return entry.hasNamed ? entry : { students: ['Remedial Pupils'], hasNamed: false }
     },
 
     availableRemedialActivities(yearGroup) {
@@ -1593,16 +1599,19 @@ document.addEventListener('alpine:init', () => {
       return remedialActivities.filter(a => a.suitableYears.includes(yearNum))
     },
 
-    pickRemedialActivities(yearGroup, count = 2) {
+    pickRemedialActivities(yearGroup, count = 3) {
       const pool = this.availableRemedialActivities(yearGroup)
       const shuffled = [...pool].sort(() => Math.random() - 0.5)
-      return shuffled.slice(0, Math.min(count, shuffled.length))
+      return shuffled.slice(0, Math.min(count, Math.max(shuffled.length, 1)))
     },
 
-    renderRemedialActivityDesc(description, yearGroup) {
-      const names = this.remedialStudentsForYear(yearGroup)
-      if (!names.length) return description
-      return description.replace('[Student Names]', names.join(', '))
+    renderRemedialActivityDesc(description, yearGroup, hasNamed) {
+      if (hasNamed) {
+        const entry = this.remedialInfoForYear(yearGroup)
+        const names = entry ? entry.students.filter(s => s !== 'Remedial Pupils') : []
+        if (names.length) return description.replace('[Student Names]', names.join(', '))
+      }
+      return description.replace('[Student Names]', 'remedial pupils')
     },
 
     // ── Rekod Transit functions ──
@@ -4385,12 +4394,12 @@ const SKILL_LABELS = {
 
 // ── Remedial Instruction (RI) — HIP Framework ──
 const remedialStudentsRegistry = {
-  1: ['Mathi Selvam', 'Shavina', 'Sin Chee Chung'],
-  2: ['Hendrikus', 'Liew Zi Qian', 'Novia', 'Saraniya', 'Tanalechimi', 'Yaathish'],
-  3: ['Lim Yi Sheng'],
-  4: [],
-  5: [],
-  6: ['Liew Wei Yang', 'Liew Zi Shun', 'Yong Han Peng'],
+  1: { students: ['Mathi Selvam', 'Shavina', 'Sin Chee Chung'],      hasNamed: true },
+  2: { students: ['Hendrikus', 'Liew Zi Qian', 'Novia', 'Saraniya', 'Tanalechimi', 'Yaathish'], hasNamed: true },
+  3: { students: ['Lim Yi Sheng'],                                    hasNamed: true },
+  4: { students: [], hasNamed: false },
+  5: { students: [], hasNamed: false },
+  6: { students: ['Liew Wei Yang', 'Liew Zi Shun', 'Yong Han Peng'], hasNamed: true },
 }
 
 const remedialActivities = [
