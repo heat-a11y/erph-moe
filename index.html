@@ -468,6 +468,62 @@
                   </div>
                 </div>
 
+                <!-- remedial instruction -->
+                <div x-show="plan.remedialInstruction" x-cloak>
+                  <div
+                    @click="plan._riOpen = !plan._riOpen"
+                    class="flex cursor-pointer items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-4 py-2.5"
+                  >
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-sm text-orange-500" x-text="plan._riOpen ? '▾' : '▸'"></span>
+                      <span class="flex h-6 w-6 items-center justify-center rounded-full bg-orange-200 text-xs">🩺</span>
+                      <span class="text-sm font-semibold text-orange-800">Remedial Instruction (Aktiviti Pemulihan)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="rounded-full bg-orange-200/60 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                        <span x-text="plan.remedialInstruction.students.length"></span> student(s)
+                      </span>
+                      <span class="rounded-full bg-orange-200/60 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                        <span x-text="plan.remedialInstruction.activities.length"></span> aktiviti
+                      </span>
+                    </div>
+                  </div>
+                  <div x-show="plan._riOpen" x-collapse class="border border-t-0 border-orange-200 rounded-b-lg bg-orange-50/50 px-4 py-3 space-y-3">
+                    <!-- target students -->
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-[11px] font-semibold uppercase tracking-wider text-orange-600">Target Students:</span>
+                      <template x-for="(s, si) in plan.remedialInstruction.students" :key="si">
+                        <span class="rounded-full bg-orange-200/60 px-2.5 py-0.5 text-[11px] font-medium text-orange-800" x-text="s"></span>
+                      </template>
+                    </div>
+                    <!-- activities -->
+                    <div class="space-y-2">
+                      <template x-for="(ra, ri) in plan.remedialInstruction.activities" :key="ri">
+                        <div class="rounded-lg border border-orange-200 bg-white p-3">
+                          <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                              <p class="text-sm font-semibold text-slate-800" x-text="ra.title"></p>
+                              <p class="mt-0.5 text-xs text-slate-600" x-text="ra.description"></p>
+                            </div>
+                            <span class="shrink-0 rounded bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700" x-text="ra.duration + ' min'"></span>
+                          </div>
+                          <div class="mt-2 flex flex-wrap gap-1.5">
+                            <template x-for="strat in ra.strategies" :key="strat">
+                              <span class="rounded-md bg-orange-100 px-1.5 py-0.5 text-[10px] text-orange-700" x-text="strat"></span>
+                            </template>
+                          </div>
+                          <div x-show="ra.materials?.length" class="mt-1.5 flex flex-wrap gap-1">
+                            <span class="text-[10px] font-medium text-slate-500">Materials:</span>
+                            <template x-for="m in ra.materials" :key="m">
+                              <span class="text-[10px] text-slate-500" x-text="m"></span>
+                            </template>
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- meta tags -->
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div class="rounded-lg border bg-slate-50 p-3">
@@ -1361,6 +1417,23 @@ document.addEventListener('alpine:init', () => {
             rekodTransit: JSON.parse(JSON.stringify(this.rekodForYear(slot.yearGroup))),
             _open: true,
             _animating: true,
+            remedialInstruction: (() => {
+              const names = this.remedialStudentsForYear(slot.yearGroup)
+              if (!names.length) return null
+              const picked = this.pickRemedialActivities(slot.yearGroup, 3)
+              return {
+                students: names,
+                activities: picked.map(a => ({
+                  id: a.id,
+                  title: a.title,
+                  description: this.renderRemedialActivityDesc(a.description, slot.yearGroup),
+                  strategies: a.strategies,
+                  materials: a.materials,
+                  focus: a.focus,
+                  duration: a.duration,
+                })),
+              }
+            })(),
           }
           plans.push(plan)
         })
@@ -1471,6 +1544,23 @@ document.addEventListener('alpine:init', () => {
             rekodTransit: JSON.parse(JSON.stringify(this.rekodForYear(slot.yearGroup))),
             _open: true,
             _animating: true,
+            remedialInstruction: (() => {
+              const names = this.remedialStudentsForYear(slot.yearGroup)
+              if (!names.length) return null
+              const picked = this.pickRemedialActivities(slot.yearGroup, 3)
+              return {
+                students: names,
+                activities: picked.map(a => ({
+                  id: a.id,
+                  title: a.title,
+                  description: this.renderRemedialActivityDesc(a.description, slot.yearGroup),
+                  strategies: a.strategies,
+                  materials: a.materials,
+                  focus: a.focus,
+                  duration: a.duration,
+                })),
+              }
+            })(),
           }
           plans.push(plan)
         })
@@ -1490,6 +1580,29 @@ document.addEventListener('alpine:init', () => {
       if (confirm('Delete this lesson plan?')) {
         this.lessonPlans = this.lessonPlans.filter(p => p.id !== id)
       }
+    },
+
+    // ── Remedial Instruction (RI) helpers ──
+    remedialStudentsForYear(yearGroup) {
+      const yearNum = parseInt(yearGroup?.replace('Year ', '')) || 0
+      return remedialStudentsRegistry[yearNum] || []
+    },
+
+    availableRemedialActivities(yearGroup) {
+      const yearNum = parseInt(yearGroup?.replace('Year ', '')) || 0
+      return remedialActivities.filter(a => a.suitableYears.includes(yearNum))
+    },
+
+    pickRemedialActivities(yearGroup, count = 2) {
+      const pool = this.availableRemedialActivities(yearGroup)
+      const shuffled = [...pool].sort(() => Math.random() - 0.5)
+      return shuffled.slice(0, Math.min(count, shuffled.length))
+    },
+
+    renderRemedialActivityDesc(description, yearGroup) {
+      const names = this.remedialStudentsForYear(yearGroup)
+      if (!names.length) return description
+      return description.replace('[Student Names]', names.join(', '))
     },
 
     // ── Rekod Transit functions ──
@@ -1683,6 +1796,11 @@ document.addEventListener('alpine:init', () => {
         ...plan.learningObjectives.map(o => `  \u2022 ${o}`), '',
         'ACTIVITIES:',
         ...plan.activities.map(a => `  [${a.phase}] ${a.description} (${a.duration} min)`), '',
+        plan.remedialInstruction ? 'REMEDIAL INSTRUCTION (Aktiviti Pemulihan):' : '',
+        plan.remedialInstruction ? `  Target Students: ${plan.remedialInstruction.students.join(', ')}` : '',
+        ...(plan.remedialInstruction?.activities || []).map(a =>
+          `  [${a.title}] ${a.description} (${a.duration} min) — Strategies: ${a.strategies.join(', ')}`
+        ), '',
         `Teaching Aids: ${plan.teachingAids.join(', ')}`,
         `Moral Values: ${plan.moralValues.join(', ')}`,
         `CCE: ${plan.cce.join(', ')}`,
@@ -1718,6 +1836,7 @@ document.addEventListener('alpine:init', () => {
             <h2 style="font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4f46e5;border-bottom:2px solid #e2e8f0;padding-bottom:.25rem;margin-bottom:.5rem">Activities</h2>
             ${plan.activities.map(a => '<div style="border:1px solid #e2e8f0;border-radius:.5rem;padding:.65rem .75rem;margin-bottom:.6rem;break-inside:avoid"><h3 style="font-size:.8rem;font-weight:600;color:#4f46e5;margin-bottom:.2rem">' + this.escapeHtml(a.phase) + ' <span style="font-size:.7rem;color:#94a3b8;font-weight:400">— ' + a.duration + ' min</span></h3><p style="font-size:.78rem;color:#475569;margin:0">' + this.escapeHtml(a.description) + '</p><div style="display:flex;gap:1rem;margin-top:.35rem;font-size:.7rem;color:#64748b"><div><span style="font-weight:600;color:#334155">Teacher:</span> ' + this.escapeHtml(a.teacherRole) + '</div><div><span style="font-weight:600;color:#334155">Students:</span> ' + this.escapeHtml(a.studentRole) + '</div></div></div>').join('')}
           </div>
+          ${plan.remedialInstruction ? '<div style="margin-top:1.25rem"><h2 style="font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#ea580c;border-bottom:2px solid #fed7aa;padding-bottom:.25rem;margin-bottom:.5rem">Remedial Instruction (Aktiviti Pemulihan)</h2><div style="margin-bottom:.5rem;display:flex;flex-wrap:wrap;gap:.3rem">' + plan.remedialInstruction.students.map(s => '<span style="background:#fed7aa;color:#9a3412;border-radius:9999px;padding:.1rem .55rem;font-size:.68rem;font-weight:500">' + this.escapeHtml(s) + '</span>').join('') + '</div>' + plan.remedialInstruction.activities.map(a => '<div style="border:1px solid #fed7aa;border-radius:.5rem;padding:.65rem .75rem;margin-bottom:.5rem;break-inside:avoid"><h3 style="font-size:.78rem;font-weight:600;color:#c2410c;margin-bottom:.2rem">' + this.escapeHtml(a.title) + ' <span style="font-size:.68rem;color:#9a3412;font-weight:400">— ' + a.duration + ' min</span></h3><p style="font-size:.75rem;color:#78350f;margin:0">' + this.escapeHtml(a.description) + '</p><div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem">' + a.strategies.map(str => '<span style="background:#ffedd5;color:#9a3412;border-radius:9999px;padding:.05rem .45rem;font-size:.64rem">' + this.escapeHtml(str) + '</span>').join('') + '</div></div>').join('') + '</div>' : ''}
           ${plan.teachingAids.length ? '<div style="margin-top:1.25rem"><h2 style="font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4f46e5;border-bottom:2px solid #e2e8f0;padding-bottom:.25rem;margin-bottom:.5rem">Teaching Aids</h2><div style="display:flex;flex-wrap:wrap;gap:.375rem">' + plan.teachingAids.map(a => '<span style="background:#f1f5f9;border-radius:9999px;padding:.125rem .55rem;font-size:.72rem;color:#475569">' + this.escapeHtml(a) + '</span>').join('') + '</div></div>' : ''}
           ${plan.moralValues.length ? '<div style="margin-top:1.25rem"><h2 style="font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4f46e5;border-bottom:2px solid #e2e8f0;padding-bottom:.25rem;margin-bottom:.5rem">Moral Values</h2><div style="display:flex;flex-wrap:wrap;gap:.375rem">' + plan.moralValues.map(v => '<span style="background:#f1f5f9;border-radius:9999px;padding:.125rem .55rem;font-size:.72rem;color:#475569">' + this.escapeHtml(v) + '</span>').join('') + '</div></div>' : ''}
           ${plan.cce.length ? '<div style="margin-top:1.25rem"><h2 style="font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4f46e5;border-bottom:2px solid #e2e8f0;padding-bottom:.25rem;margin-bottom:.5rem">CCE</h2><div style="display:flex;flex-wrap:wrap;gap:.375rem">' + plan.cce.map(c => '<span style="background:#f1f5f9;border-radius:9999px;padding:.125rem .55rem;font-size:.72rem;color:#475569">' + this.escapeHtml(c) + '</span>').join('') + '</div></div>' : ''}
@@ -4263,6 +4382,39 @@ const SKILL_LABELS = {
   reading: 'Membaca (Reading)',
   writing: 'Menulis (Writing)',
 }
+
+// ── Remedial Instruction (RI) — HIP Framework ──
+const remedialStudentsRegistry = {
+  1: ['Mathi Selvam', 'Shavina', 'Sin Chee Chung'],
+  2: ['Hendrikus', 'Liew Zi Qian', 'Novia', 'Saraniya', 'Tanalechimi', 'Yaathish'],
+  3: ['Lim Yi Sheng'],
+  4: [],
+  5: [],
+  6: ['Liew Wei Yang', 'Liew Zi Shun', 'Yong Han Peng'],
+}
+
+const remedialActivities = [
+  { id: 1,  title: 'Chunked Sentence Builder',                      description: 'Break target sentence into 3\u20135 word chunks on colour-coded strips. Guide [Student Names] to arrange them in correct order using a model sentence as reference.',                                strategies: ['Explicit Instruction & Modeling'],                                  suitableYears: [1,2,3,4,5,6], materials: ['Colour-coded word strips','magnetic board','model sentence card'],                              focus: 'Sentence structure & syntax awareness',           duration: 15 },
+  { id: 2,  title: 'Flashcard Match Relay',                         description: 'Place picture flashcards on one table and word cards on another. [Student Names] race to match each picture to the correct word, then say the word aloud with teacher prompting.',          strategies: ['High use of visual/verbal aids'],                               suitableYears: [1,2,3],        materials: ['Picture flashcards','word cards','timer'],                                                focus: 'Vocabulary recognition & pronunciation',           duration: 10 },
+  { id: 3,  title: 'Peer Read-Aloud Duo',                          description: 'Pair each remedial student with a stronger peer. The peer reads a short sentence aloud first; [Student Names] echo-read the same sentence, pointing to each word.',                          strategies: ['Peer-assisted learning'],                                       suitableYears: [1,2,3,4,5,6], materials: ['Short reading passages','pointers'],                                                         focus: 'Reading fluency & word recognition',               duration: 15 },
+  { id: 4,  title: 'Realia Show & Tell',                            description: 'Bring real objects (fruit, stationery, toys). Teacher says the name, [Student Names] repeat and then pick up the correct object when asked "Where is the ___?"',                           strategies: ['High use of visual/verbal aids','Explicit Instruction & Modeling'], suitableYears: [1,2,3], materials: ['Real objects (realia)','labelled baskets'],                                               focus: 'Listening comprehension & vocabulary',              duration: 15 },
+  { id: 5,  title: 'Dialog Strip Sequencing',                      description: 'Provide a 4-line dialog cut into strips. After teacher models the full dialog, [Student Names] sequence the strips and practise the exchange with a partner.',                             strategies: ['Explicit Instruction & Modeling','Peer-assisted learning'],      suitableYears: [2,3,4,5,6],  materials: ['Dialog strips','conversation prompt card'],                                                focus: 'Basic communicative competence (dialogues)',        duration: 20 },
+  { id: 6,  title: 'Colour-by-Word Listening',                     description: 'Give [Student Names] a simple outline drawing with labelled sections. Teacher calls out colours for specific items. Students listen and colour accordingly.',                              strategies: ['High use of visual/verbal aids'],                               suitableYears: [1,2,3],        materials: ['Outline worksheet','crayons','colour word list'],                                             focus: 'Listening & following instructions',                duration: 15 },
+  { id: 7,  title: 'Guided Tableau (Role-Play)',                   description: 'Teacher models a short everyday scenario (e.g., buying food). [Student Names] act out the scene using prompted sentence frames held up on cue cards.',                                   strategies: ['Explicit Instruction & Modeling','High use of visual/verbal aids'], suitableYears: [3,4,5,6], materials: ['Cue cards with sentence frames','props'],                                                  focus: 'Communicative competence & confidence',             duration: 20 },
+  { id: 8,  title: 'Word Family Sorting',                          description: 'Use a pocket chart with word family headers (-at, -an, -op). [Student Names] sort word cards into the correct family with a peer\'s help, then chant the words.',                       strategies: ['Peer-assisted learning','High use of visual/verbal aids'],       suitableYears: [1,2],          materials: ['Pocket chart','word family cards','chant sheet'],                                           focus: 'Phonemic awareness & word families',                duration: 12 },
+  { id: 9,  title: 'Cloze Passage with Picture Cues',              description: 'Provide a short cloze passage where missing words are shown as pictures above the blanks. [Student Names] write the word after saying it aloud with teacher guidance.',                  strategies: ['Explicit Instruction & Modeling','High use of visual/verbal aids'], suitableYears: [2,3,4], materials: ['Cloze worksheet with picture cues','word bank'],                                              focus: 'Reading comprehension & spelling',                  duration: 15 },
+  { id: 10, title: 'Question-Question Pass',                       description: 'Stand in a small circle. Teacher models a simple question ("What is your name?"). Pass a ball; whoever catches it answers, then asks the next person. [Student Names] get the first turn after teacher demo.', strategies: ['Explicit Instruction & Modeling','Peer-assisted learning'],      suitableYears: [1,2,3,4,5,6], materials: ['Soft ball or beanbag','question prompt cards'],                                            focus: 'Question formation & oral response',                duration: 10 },
+  { id: 11, title: 'Picture-Word Wall Walk',                       description: 'Display large labelled pictures around the room. [Student Names] walk with a checklist and tick the words they can read aloud. Peer buddies check pronunciation.',                        strategies: ['High use of visual/verbal aids','Peer-assisted learning'],        suitableYears: [1,2,3,4],      materials: ['Labelled picture posters','checklist clipboard'],                                          focus: 'Reading & vocabulary reinforcement',                duration: 15 },
+  { id: 12, title: 'Step-by-Step Instruction Cards',                description: 'Chunk a simple task (e.g., "Make a paper fan") into 4\u20136 numbered steps with illustrations. [Student Names] read one card at a time and complete each step before moving on.',         strategies: ['Explicit Instruction & Modeling'],                                  suitableYears: [3,4,5,6],      materials: ['Step cards with illustrations','task materials'],                                           focus: 'Sequential listening/reading comprehension',        duration: 20 },
+  { id: 13, title: 'Talk-the-Picture Frame',                       description: 'Give each pair a large picture scene. [Student Names] point to items and say what they see using frame: "I see a ___." Partner encourages and helps if stuck.',                          strategies: ['Peer-assisted learning','High use of visual/verbal aids'],       suitableYears: [1,2,3],        materials: ['Large scene pictures','sentence frame card'],                                             focus: 'Basic oral expression & vocabulary',                duration: 12 },
+  { id: 14, title: 'Grammar Jigsaw (Subject-Verb)',                description: 'Cut simple SV sentences into subject + verb halves. [Student Names] match halves with a partner by reading each part aloud, then copy the correct sentence.',                            strategies: ['Peer-assisted learning','Explicit Instruction & Modeling'],      suitableYears: [3,4,5,6],      materials: ['Jigsaw sentence cards','recording sheet'],                                               focus: 'Basic grammar (subject-verb agreement)',            duration: 15 },
+  { id: 15, title: 'Shopping List Role-Play',                      description: 'Teacher models a shop interaction. [Student Names] use a picture shopping list and sentence frames ("Can I have ___?" / "Here you go.") to role-play with a peer shopkeeper.',            strategies: ['Explicit Instruction & Modeling','Peer-assisted learning'],      suitableYears: [2,3,4,5,6],  materials: ['Picture shopping list','play money','props'],                                              focus: 'Communicative competence (transactional)',          duration: 20 },
+  { id: 16, title: 'Alphabet / Phonics Hopscotch',                  description: 'Draw a hopscotch grid with letters or phonics blends. [Student Names] jump to a letter and say its sound or a word starting with it, prompted by teacher or peer.',                    strategies: ['High use of visual/verbal aids','Explicit Instruction & Modeling'], suitableYears: [1,2], materials: ['Chalk or tape','letter cards'],                                                      focus: 'Letter-sound recognition',                          duration: 10 },
+  { id: 17, title: 'Error Hunt (Model & Fix)',                     description: 'Show 3 illustrated sentences \u2014 1 correct, 2 with simple errors (spelling/word order). Teacher models how to spot the error, then [Student Names] circle the mistakes with a partner.', strategies: ['Explicit Instruction & Modeling','Peer-assisted learning'],      suitableYears: [3,4,5,6],      materials: ['Error hunt worksheet','pencils','model answer sheet'],                                       focus: 'Editing & self-correction awareness',               duration: 15 },
+  { id: 18, title: 'Whisper & Write Chain',                        description: 'Teacher whispers a short sentence to the first student. It gets whispered along the chain. The last student says it aloud; compare with the original. [Student Names] are placed in the middle of the chain for extra exposure.', strategies: ['Peer-assisted learning'],                                       suitableYears: [3,4,5,6],      materials: ['Sentence cards for teacher'],                                                         focus: 'Listening accuracy & memory',                       duration: 10 },
+  { id: 19, title: 'Mini Whiteboard Quick-Write',                  description: 'Teacher shows a picture and says a word/sentence. [Student Names] write it on mini whiteboards, hold up, and self-correct after teacher reveals the correct spelling.',                   strategies: ['Explicit Instruction & Modeling','High use of visual/verbal aids'], suitableYears: [2,3,4,5,6], materials: ['Mini whiteboards','markers','picture cards'],                                             focus: 'Spelling & writing accuracy',                       duration: 10 },
+  { id: 20, title: 'Song Lyric Fill-in',                           description: 'Play a short, familiar English song twice. Give [Student Names] a lyric sheet with key words blanked out (pictures above blanks). They fill in after hearing the song with peer help.',   strategies: ['High use of visual/verbal aids','Peer-assisted learning'],        suitableYears: [3,4,5,6],      materials: ['Song audio','lyric worksheet with picture cues'],                                          focus: 'Listening comprehension & vocabulary',              duration: 20 },
+]
 
 const REKOD_TRANSIT = {
   'Year 1': {
