@@ -27,14 +27,7 @@ jobs:
           cd android
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
-          ./gradlew clean assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-
-      - name: Upload build log (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: /tmp/build.log
+          ./gradlew clean assembleDebug --no-daemon --stacktrace 2>&1
 
       - uses: actions/upload-artifact@v4
         if: success()
@@ -43,11 +36,14 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-      - uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' && success()
-        with:
-          tag_name: v${{ github.run_number }}
-          name: MALP build #${{ github.run_number }}
-          body: APK built from commit ${{ github.sha }}
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-          generate_release_notes: false
+      - name: Create Release
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ github.run_number }}"
+          gh release create "$TAG" \
+            --repo "${{ github.repository }}" \
+            --title "MALP build #${{ github.run_number }}" \
+            --notes "APK built from commit ${{ github.sha }}" \
+            android/app/build/outputs/apk/debug/app-debug.apk
