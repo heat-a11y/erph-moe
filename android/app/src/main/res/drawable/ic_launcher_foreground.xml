@@ -1,0 +1,46 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Book icon for MALP app -->
+    <group
+        android:translateX="18"
+        android:translateY="18">
+        <!-- Book cover -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,8v28l28,8V16z" />
+        <path
+            android:fillColor="#E2E8F0"
+            android:pathData="M40,16v28l28,-8V8z" />
+        <!-- Book spine -->
+        <path
+            android:fillColor="#C0C0C0"
+            android:pathData="M12,8l28,8v28l-28,-8z" />
+        <!-- Pages (left side) -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M14,10l26,7v26l-26,-7z" />
+        <!-- Text lines left -->
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M18,16h18v1.5H18z" />
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M18,20h18v1.5H18z" />
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M18,24h14v1.5H18z" />
+        <!-- Text lines right -->
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M42,14h18v1.5H42z" />
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M42,18h18v1.5H42z" />
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M42,22h14v1.5H42z" />
+    </group>
+</vector>
