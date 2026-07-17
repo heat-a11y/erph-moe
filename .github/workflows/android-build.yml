@@ -19,21 +19,26 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Accept licenses and install SDK
+      - name: Install SDK components
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses 2>/dev/null || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platforms;android-34" "build-tools;34.0.0"
+          SDK_ROOT=${ANDROID_HOME:-$ANDROID_SDK_ROOT}
+          echo "SDK root: $SDK_ROOT"
+          ls "$SDK_ROOT/"
+          SDK_MGR=$(find "$SDK_ROOT" -name sdkmanager -type f 2>/dev/null | head -1)
+          if [ -z "$SDK_MGR" ]; then
+            SDK_MGR=$(find /usr/local/lib/android -name sdkmanager -type f 2>/dev/null | head -1)
+          fi
+          echo "sdkmanager: $SDK_MGR"
+          yes | "$SDK_MGR" --sdk_root="$SDK_ROOT" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Build debug APK
         run: |
+          SDK_ROOT=${ANDROID_HOME:-$ANDROID_SDK_ROOT}
           cd android
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "sdk.dir=$SDK_ROOT" > local.properties
           gradle assembleDebug --no-daemon
 
       - name: Upload APK
