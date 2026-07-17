@@ -17,19 +17,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        run: |
-          SDK_ROOT=/usr/local/lib/android/sdk
-          echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
-          yes | $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_ROOT --licenses 2>/dev/null || true
-          $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_ROOT "platforms;android-34" "build-tools;34.0.0" 2>&1 | tail -5
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Build APK
         run: |
           cd android
-          echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1
+          ./gradlew assembleDebug --no-daemon 2>&1
 
       - uses: actions/upload-artifact@v4
         if: success()
