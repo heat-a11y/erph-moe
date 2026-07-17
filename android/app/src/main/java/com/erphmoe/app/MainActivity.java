@@ -93,10 +93,11 @@ public class MainActivity extends AppCompatActivity {
                 String base64Data = dataUri.substring(dataUri.indexOf(",") + 1);
                 byte[] pdfBytes = Base64.decode(base64Data, Base64.DEFAULT);
 
-                String safeFilename = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
-                if (!safeFilename.endsWith(".pdf")) {
-                    safeFilename += ".pdf";
+                String safeFilename0 = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+                if (!safeFilename0.endsWith(".pdf")) {
+                    safeFilename0 += ".pdf";
                 }
+                final String safeFilename = safeFilename0;
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     ContentValues values = new ContentValues();
