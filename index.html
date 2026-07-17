@@ -359,31 +359,33 @@
               <!-- header -->
               <div
                 @click="plan._open = !plan._open"
-                class="flex cursor-pointer items-center justify-between border-b px-5 py-3"
+                class="cursor-pointer border-b px-4 sm:px-5 py-3"
               >
-                <div class="flex items-center gap-3 min-w-0">
-                  <span class="shrink-0 text-slate-400" x-text="plan._open ? '▾' : '▸'"></span>
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <p class="truncate text-sm font-semibold text-slate-900" x-text="plan.title"></p>
-                      <span x-show="plan.weekLabel" class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-500" x-text="plan.weekLabel"></span>
-                      <span x-show="plan.part" class="shrink-0 rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">P<span x-text="plan.part"></span></span>
+                <div class="flex items-start sm:items-center justify-between gap-2">
+                  <div class="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+                    <span class="shrink-0 mt-0.5 sm:mt-0 text-slate-400" x-text="plan._open ? '▾' : '▸'"></span>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5 flex-wrap">
+                        <p class="truncate text-sm font-semibold text-slate-900" x-text="plan.title"></p>
+                        <span x-show="plan.weekLabel" class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-500" x-text="plan.weekLabel"></span>
+                        <span x-show="plan.part" class="shrink-0 rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">P<span x-text="plan.part"></span></span>
+                      </div>
+                      <p class="text-xs text-slate-500 truncate">
+                        <span x-text="plan.date"></span>
+                        <span x-show="plan.daySlot"> &middot; <span x-text="plan.daySlot"></span></span>
+                        <span x-show="plan.slotTime"> &middot; <span x-text="plan.slotTime"></span></span>
+                        <span x-text="' · ' + plan.yearGroup + ' · ' + plan.duration + ' min'"></span>
+                      </p>
                     </div>
-                    <p class="text-xs text-slate-500 truncate">
-                      <span x-text="plan.date"></span>
-                      <span x-show="plan.daySlot"> &middot; <span x-text="plan.daySlot"></span></span>
-                      <span x-show="plan.slotTime"> &middot; <span x-text="plan.slotTime"></span></span>
-                      <span x-text="' · ' + plan.yearGroup + ' · ' + plan.duration + ' min'"></span>
-                    </p>
                   </div>
-                </div>
-                <div class="flex shrink-0 items-center gap-1.5">
-                  <template x-for="s in plan.skillArea" :key="s">
-                    <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700" x-text="s"></span>
-                  </template>
-                  <button @click.stop="deletePlan(plan.id)" class="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-500">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
-                  </button>
+                  <div class="flex shrink-0 items-center gap-1.5">
+                    <template x-for="s in plan.skillArea" :key="s">
+                      <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700" x-text="s"></span>
+                    </template>
+                    <button @click.stop="deletePlan(plan.id)" class="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-500">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
               <!-- body -->
