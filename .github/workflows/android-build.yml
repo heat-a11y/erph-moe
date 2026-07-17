@@ -17,33 +17,29 @@ jobs:
           distribution: 'temurin'
       - uses: android-actions/setup-android@v3
 
-      - name: Install SDK components
+      - name: Install SDK
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses 2>/dev/null || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platforms;android-34" "build-tools;34.0.0" 2>&1
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platforms;android-34" "build-tools;34.0.0"
 
       - name: Build APK
         run: |
           cd android
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
-          ./gradlew clean assembleDebug --no-daemon --stacktrace 2>&1
+          ./gradlew clean assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: malp-debug-apk
+          name: MALP-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
 
       - name: Create Release
         if: success()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v${{ github.run_number }}"
-          gh release create "$TAG" \
-            --repo "${{ github.repository }}" \
+          gh release create "v${{ github.run_number }}" \
+            android/app/build/outputs/apk/debug/app-debug.apk \
             --title "MALP build #${{ github.run_number }}" \
             --notes "APK built from commit ${{ github.sha }}" \
-            android/app/build/outputs/apk/debug/app-debug.apk
+            --repo ${{ github.repository }}
