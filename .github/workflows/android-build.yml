@@ -29,9 +29,10 @@ jobs:
 
       - name: Build debug APK
         run: |
+          echo "sdk.dir=/usr/local/lib/android/sdk" > android/local.properties
           cd android
-          echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
-          gradle assembleDebug --no-daemon
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
