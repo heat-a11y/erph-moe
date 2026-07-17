@@ -93,11 +93,10 @@ public class MainActivity extends AppCompatActivity {
                 String base64Data = dataUri.substring(dataUri.indexOf(",") + 1);
                 byte[] pdfBytes = Base64.decode(base64Data, Base64.DEFAULT);
 
-                String safeFilename0 = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
-                if (!safeFilename0.endsWith(".pdf")) {
-                    safeFilename0 += ".pdf";
+                String safeFilename = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+                if (!safeFilename.endsWith(".pdf")) {
+                    safeFilename += ".pdf";
                 }
-                final String safeFilename = safeFilename0;
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     ContentValues values = new ContentValues();
@@ -128,12 +127,12 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                        "PDF saved to Downloads: " + safeFilename, Toast.LENGTH_LONG).show());
+                final String successMsg = "PDF saved to Downloads: " + safeFilename;
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, successMsg, Toast.LENGTH_LONG).show());
             } catch (Exception e) {
                 Log.e("PDFExport", "Error saving PDF", e);
-                runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                        "Failed to save PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                final String errorMsg = "Failed to save PDF: " + e.getMessage();
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_SHORT).show());
             }
         }
     }
